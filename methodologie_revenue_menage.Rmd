@@ -77,18 +77,48 @@ Note : dans la suite r signifie : le revenu est inférieur à r. a signie : l'ag
 Nous souhaitos connaitre pour tout revenu, r,compris entre le revenu minimal, rmin, la probabilité que le revenu soit inférieur à r sachant que la taialle du ménage est t et l'age de la personne du ménage est a. Ce qui s'écrit mathématiquement :
 
 $$ P(r \; | \; (\text{a et t})) $$
+En appliquant le théorème de Bayes, nous obtenons
 
-$$P(R \; | \; (\text{Age et taille})=P((\text{Age et taille}) \; | \; R) \frac{P(R)}{P(\text{Age et taille})}$$
-sous l'hypothèse d'indépendance qui ne me plait pas: 
-$$P((\text{Age et taille}) \; | \; R)=P(\text{Age} \; | \; R)P(\text{taille} \; | \; R)$$
-On obtient
+$$P(r \; | \; (\text{a et t}))=P((\text{a et t}) \; | \; r) \frac{P(r)}{P(\text{a et t})}$$
+Une règle de trois sur la population synthétique permet  de connnaitre
+$$P(\text{a et t})$$
+La connaissance des déciles sur le revenu et la proportion de chacune des modalité permet de connaitre 
+$$P(r_k) = \sum_i P(r_k| a_i)P(a_i)$$
+rk est le revenu correspondant au décile k (k=0.1,0.2,0.3,...1), al correspont à la modalité l de l'age de la personne de référence du ménage
 
-$$P(R \; | \; (\text{Age et taille})=P(R \; | \; \text{Age})\frac{P(\text{Age})}{P(R)}P(R \; | \; \text{Taille})\frac{P(\text{Taille})}{P(R)}\frac{P(R)}{P(\text{Age et taille})}$$
-sous l'hypothèse d'indépendance qui ne me plait pas (nous pourrions calculer la vraie valeur à partir de la population synthétique, à discuter)
-$$P((\text{Age et taille}))=P(\text{Age})P(\text{taille})$$
-$$P(R \; | \; (\text{Age et taille})=\frac{P(R \; | \; \text{Age})P(R \; | \; \text{Taille})}{P(R)}$$
+On peut aussi faire le calcul avec les modalités sur la taille : 
 
-On teste avec R=20000 Age = 0 30 ans et taille = 1
+$$P(r_l) = \sum_j P(r_l| t_j)P(t_j)$$
+Même si rk et rl sont différents, il est intéressant de calculer ces 20 valeurs pour vérifier visuellement leurs cohérences.
+
+Ensuite, il faut estimer 
+$$P((\text{a et t}) \; | \; r)$$
+Pour cela, nous allons utiliserla méthodologie de l'entropie croisée : nous allons considérer que cette probabilité doit être la plus proche de P(a et t)
+tout en respectant les déciles P(rl sachant ai) pour tout l et pour tout i et P(rk schant tj) pour tout k et pour tout j.
+
+Nous allons calculer P( a et t sachant r) pour r valant rk ou rl. Sachant qu'il y a 20 déciles,  3 modalité pour l'age de la personne du référence du ménage et 4 modalités pour la taille du ménages, nous avons 240 degrés de libertés
+
+
+
+Concrêtement, pour connaitre par exemple, P ((a et t) sachant r1) où r1 correspond au revenu du  premier décile lorsque l'age de référence est égale 
+
+$$ Min \; \sum_{i,j,k,l} P(\text{ai et tj}) \; | \; r_{k,l})) ln(\frac{P(\text{a_i et t_j}))}{P(\text{a_i et t_j}) \; | \; r_{k,l})))}$$
+sous les contraintes
+
+$$P(r_k \; | \; a_i) =k\times 0.1$$
+$$P(r_l \; | \; t_j) =l\times 0.1$$
+soit 70 contraintes
+
+Dans la suite, nous nous concentrons sur une contrainte pour voir sa relation avec les degrés de liberté:
+$$P(r_1 \; | \; a_1) = P(a_1 \; | \; r_1)\frac{P(r_1)}{P(a_1)} $$ 
+P(a1) est un maginal de la population synthétique. P(r1) a été calculé précedemment et P(a1 sachant r1) s'écrit en fonction des degrés de liberté:
+
+$$P(a_1 \; | \; r_1) = P(a_1 \text{ et } b_1| \; r_1) + P(a_1 \text{ et } b_2| \; r_1) + P(a_1 \text{ et } b_3| \; r_1) + P(a_1 \text{ et } b_4 | \; r_1) $$
+
+
+# Application
+
+En cours de développement.... A faire avec Fabrice
 
 ```
 R=20000
@@ -98,14 +128,3 @@ p=c(1:9)/10
 data_iris_taille[modalite_taille[1],2:]
 PRAge=data.frame(p)
 ```
-
-## Including Plo
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
----
