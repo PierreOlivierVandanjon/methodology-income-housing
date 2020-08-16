@@ -7,11 +7,11 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Introduction
+# Introduction
 
-Ce document a pour objectif de montrer
+Ce document a pour objectif de proposer une méthode pour l'ajout de la variable revenue à une population synthétique qui ne contient pas cette variable. En revanche, il est connu les déciles de cette variable pour certains marginaux. Cette méthode est implémentée en R. Elle est donnée sous la forme d'un exemple qui permet de tester différentes méthodologies. Dans la suite, nous présentons le cas d'étude, puis la méthodologie et enfin son application sur le cas étudié.
 
-le cas d'étude: 
+# Le cas d'étude: 
 
 sur l'iris, en faisant l'hypothèse de l'identité entre la personne de référende fiscale et la personne de référence du recensemsent, nous avons 20 ménages dont la personne de référence a entre 0 et 30 ans, 
 70 qui ont entre 30 et 60 ans
@@ -68,6 +68,15 @@ data_fisc_taille=rbind(c(modalite_taille[1],decile_1), c(modalite_taille[2],deci
 
 colnames(data_fisc_taille)=c('taille','d1','d2','d3','d4','d5','d6','d7','d8','d9')
 ```
+
+
+# Méthodologie
+
+Note : dans la suite r signifie : le revenu est inférieur à r. a signie : l'age de la personne de référence du ménage est égale à la modalité a. t signifie la taille du ménage est égale à la modalité t. 
+
+Nous souhaitos connaitre pour tout revenu, r,compris entre le revenu minimal, rmin, la probabilité que le revenu soit inférieur à r sachant que la taialle du ménage est t et l'age de la personne du ménage est a. Ce qui s'écrit mathématiquement :
+
+$$ P(r \; | \; (\text{a et t})) $$
 
 $$P(R \; | \; (\text{Age et taille})=P((\text{Age et taille}) \; | \; R) \frac{P(R)}{P(\text{Age et taille})}$$
 sous l'hypothèse d'indépendance qui ne me plait pas: 
