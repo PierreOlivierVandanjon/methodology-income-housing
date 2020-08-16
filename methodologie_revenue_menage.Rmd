@@ -1,6 +1,8 @@
 ---
 title: "Méthodologie pour attribuer un revenu aux ménages"
-output: html_document
+output:
+  html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -102,7 +104,7 @@ Nous allons calculer P( a et t sachant r) pour r valant rk ou rl. Sachant qu'il 
 
 Concrêtement, pour connaitre par exemple, P ((a et t) sachant r1) où r1 correspond au revenu du  premier décile lorsque l'age de référence est égale 
 
-$$ Min \; \sum_{i,j,k,l} P(\text{ai et tj}) \; | \; r_{k,l})) ln(\frac{P(\text{a_i et t_j}))}{P(\text{a_i et t_j}) \; | \; r_{k,l})))}$$
+$$ Min \; -\sum_{i,j,k,l} P(\text{ai et tj} \; | \; r_{k,l}) \ln(P(\text{a_i et t_j})) $$
 sous les contraintes
 
 $$P(r_k \; | \; a_i) =k\times 0.1$$
@@ -115,10 +117,25 @@ P(a1) est un maginal de la population synthétique. P(r1) a été calculé préc
 
 $$P(a_1 \; | \; r_1) = P(a_1 \text{ et } b_1| \; r_1) + P(a_1 \text{ et } b_2| \; r_1) + P(a_1 \text{ et } b_3| \; r_1) + P(a_1 \text{ et } b_4 | \; r_1) $$
 
+Ce problème d'optimisation peut être diviser en 20 problèmes de minimisations indépendants comprenant chacun 12 degrés de liberté et 1 contrainte.
+Par exemple, en choisissant de travailler sur r1.
+
+$$ Min \; -\sum_{i,j} P(\text{ai et tj} \; | \; r_{1}) \ln(P(\text{ai et tj}))$$
+
+Si on appel P chapeau la solution du problème d'optimisation, nous trouvons
+
+$$P(r1 \; | \; (\text{ai et tj}))=\widehat{P}((\text{ai et tj}) \; | \; r1) \frac{P(r1)}{P(\text{ai et tj})}$$
+Après avoir réalisé les 20 optimisations, nous aurons
+
+$$P(r_{k,l} \; | \; (\text{ai et tj}))$$
+pour tout k et pour tout l. En faisant une interpolation linéaire entre les valeurs rk, rl, nous obtenons la loi de probabilité du revenu connaissant ai et tj et donc, nous pouvons tirer un revenu au hasard pour tous les couples (ai, tj)
+
+
 
 # Application
 
 En cours de développement.... A faire avec Fabrice
+
 
 ```
 R=20000
