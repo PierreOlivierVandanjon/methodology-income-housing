@@ -1,0 +1,102 @@
+---
+title: "Méthodologie pour attribuer un revenu aux ménages"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+Ce document a pour objectif de montrer
+
+le cas d'étude: 
+
+sur l'iris, en faisant l'hypothèse de l'identité entre la personne de référende fiscale et la personne de référence du recensemsent, nous avons 20 ménages dont la personne de référence a entre 0 et 30 ans, 
+70 qui ont entre 30 et 60 ans
+et 10 qui sont supérieur à 60 ans.
+pour ceux dont la personne de référende est entre 0 et 30 ans, les 9 déciles sont les valeurs suivantes se reproduisent ainsi
+5000,  10000, 15000, 16000, 17000, 18000, 20000, 22000, 250000
+pour ceux qui ont entre 30 et 60 ans, on augmente de 5000
+et pour ceux qui sont à la retraite, on prend les 4 premiers déciles des jeunes et les 5 suivants des personnes actives
+
+
+```
+data_iris_age=data.frame(age=factor(),effectif=integer())
+modalite_age=c('moins_de_30ans', '30-60ans','plus_de_60ans')
+data_iris_age=rbind(data_iris_age,c(modalite_age[1],20), c(modalite_age[2],70), c(modalite_age[3],10))
+colnames(data_iris_age)=c('age','effectif')
+
+
+decile_0_30ans=c(5000,  10000, 15000, 16000, 17000, 18000, 20000, 22000, 25000)
+carriere=5000
+decile_30_60ans=decile_0_30ans+carriere
+pauvre=1:4
+riche=5:9
+decile_60_100ans=c(decile_0_30ans[pauvre], decile_30_60ans[riche])
+
+data_fisc_age=rbind(c(modalite_age[1],decile_0_30ans), c(modalite_age[2],decile_30_60ans), c(modalite_age[3],decile_60_100ans))
+colnames(data_fisc_age)=c('age','d1','d2','d3','d4','d5','d6','d7','d8','d9')
+
+```
+
+sur l'iris, en faisant l'hypothèse de l'identité entre la personne de référende fiscale et la personne de référence du recensemsent, nous avons 10 ménages dont la taille de personne est 1
+50 sont la taille est 2, 30 dont la taille est 3
+et 10 qui sont supérieur à 3.
+pour ceux dont la taille est 1  les 9 déciles sont les valeurs suivantes se reproduisent ainsi
+5000,  10000, 15000, 16000, 17000, 18000, 20000, 22000, 250000 + 1000
+pour ceux dont la taille est 2   on multiplie par 2
+pour ceux dont la taille est 3   on augmente de 1000
+pour ceux dont la taille est  supérieur à 3   on augmente de 1000
+on prend les 4 premiers déciles de la taille 2 et les 5 suivants de la taille 3
+
+```
+data_iris_taille=data.frame(taille=factor(),effectif=integer())
+modalite_taille=c('1', '2','3','4_et_plus')
+data_iris_taille=rbind(data_iris_taille,c(modalite_taille[1],20), c(modalite_taille[2],50), c(modalite_taille[3],30), c(modalite_taille[4],10))
+colnames(data_iris_taille)=c('taille','effectif')
+
+
+decile_1=c(5000,  10000, 15000, 16000, 17000, 18000, 20000, 22000, 25000)+1000
+decile_2=decile_1*2
+decile_3=decile_2+1000
+pauvre=1:4
+riche=5:9
+decile_4_et_plus=c(decile_1[pauvre], decile_3[riche])
+data_fisc_taille=rbind(c(modalite_taille[1],decile_1), c(modalite_taille[2],decile_2), c(modalite_taille[3],decile_3),  c(modalite_taille[4],decile_4_et_plus))
+
+colnames(data_fisc_taille)=c('taille','d1','d2','d3','d4','d5','d6','d7','d8','d9')
+```
+
+$$P(R \; | \; (\text{Age et taille})=P((\text{Age et taille}) \; | \; R) \frac{P(R)}{P(\text{Age et taille})}$$
+sous l'hypothèse d'indépendance qui ne me plait pas: 
+$$P((\text{Age et taille}) \; | \; R)=P(\text{Age} \; | \; R)P(\text{taille} \; | \; R)$$
+On obtient
+
+$$P(R \; | \; (\text{Age et taille})=P(R \; | \; \text{Age})\frac{P(\text{Age})}{P(R)}P(R \; | \; \text{Taille})\frac{P(\text{Taille})}{P(R)}\frac{P(R)}{P(\text{Age et taille})}$$
+sous l'hypothèse d'indépendance qui ne me plait pas (nous pourrions calculer la vraie valeur à partir de la population synthétique, à discuter)
+$$P((\text{Age et taille}))=P(\text{Age})P(\text{taille})$$
+$$P(R \; | \; (\text{Age et taille})=\frac{P(R \; | \; \text{Age})P(R \; | \; \text{Taille})}{P(R)}$$
+
+On teste avec R=20000 Age = 0 30 ans et taille = 1
+
+```
+R=20000
+age=modalite_age[1]
+taille=modalite_taille[1]
+p=c(1:9)/10
+data_iris_taille[modalite_taille[1],2:]
+PRAge=data.frame(p)
+```
+
+## Including Plo
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+---
