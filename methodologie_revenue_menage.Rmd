@@ -27,25 +27,25 @@ la moyenne
 
 sur l'iris, en faisant l'hypothèse de l'identité entre la personne de référende fiscale et la personne de référence du recensemsent, nous avons 20 ménages dont la personne de référence a entre 0 et 30 ans, 
 Moyenne de 12 000 ecart type de 3 000 avec Rmin et Rmax
-5/10 de taille 1 revenu 
+4/10 de taille 1 revenu 
 3/10 de talle 2 revenu x 2 + 1 000
-2/10 de taille 3 revenu x 2 + 3 000 
-1/10 de taille 4 revenu x 2 + 4 000
+2/10 de taille 3 revenu x 2 + 2 000 
+1/10 de taille 4 revenu x 2 + 3 000
 
 70 qui ont entre 30 et 60 ans
 Moyenne de 15 000 avec un ecart type de 4 000 avec Rmin et Rmax
 1/10 de taille 1 revenu 
 2/10 de talle 2 revenu x 2 + 2 000
-3/10 de taille 3 revenu x 2 + 6 000 
-4/10 de taille 4 revenu x 2 + 8 000
+3/10 de taille 3 revenu x 2 + 4 000 
+4/10 de taille 4 revenu x 2 + 6 000
 
 
 et 10 qui sont supérieur à 60 ans.
 Moyenne de 13 000 ecart type de 5 000 avec Rmin et Rmax
 4/10 de taille 1
 4/10 de taille 2 revenu x2 + 1000
-1/10 de taille 3 revenu x2 + 3000
-1/10 de taille 4 revenu x3 + 4000
+1/10 de taille 3 revenu x2 + 2000
+1/10 de taille 4 revenu x3 + 3000
 
 
 pour ceux dont la personne de référende est entre 0 et 30 ans, les 9 déciles sont les valeurs suivantes se reproduisent ainsi
@@ -66,7 +66,7 @@ ra1=12000
 da1=1000
 stda1=3000
 
-C[C$a==M_a[1] & C$t==M_t[1],]$p=pa1*5/10 
+C[C$a==M_a[1] & C$t==M_t[1],]$p=pa1*4/10 
 C[C$a==M_a[1] & C$t==M_t[1],]$r=ra1 
 C[C$a==M_a[1] & C$t==M_t[1],]$std=stda1
 
@@ -85,8 +85,82 @@ C[C$a==M_a[1] & C$t==M_t[4],]$std=stda1
 
 
 pa2=0.7 # proportion de personnes ayant l'age 2
+ra2=15000
+da2=2000
+stda2=4000
+
+C[C$a==M_a[2] & C$t==M_t[1],]$p=pa2*1/10 
+C[C$a==M_a[2] & C$t==M_t[1],]$r=ra2 
+C[C$a==M_a[2] & C$t==M_t[1],]$std=stda2
+
+C[C$a==M_a[2] & C$t==M_t[2],]$p=pa2*2/10 
+C[C$a==M_a[2] & C$t==M_t[2],]$r=2*ra2+da2
+C[C$a==M_a[2] & C$t==M_t[2],]$std=stda2
+
+C[C$a==M_a[2] & C$t==M_t[3],]$p=pa2*3/10 
+C[C$a==M_a[2] & C$t==M_t[3],]$r=2*ra2+2*da2
+C[C$a==M_a[2] & C$t==M_t[3],]$std =stda2
+
+C[C$a==M_a[2] & C$t==M_t[4],]$p=pa2*4/10 
+C[C$a==M_a[2] & C$t==M_t[4],]$r=2*ra2+3*da2
+C[C$a==M_a[2] & C$t==M_t[4],]$std=stda2
+
+
+
+
+
 pa3=0.1 # proportion de personnes ayant l'age 3
+ra3=13000
+da3=1000
+stda3=5000
+
+C[C$a==M_a[3] & C$t==M_t[1],]$p=pa3*4/10 
+C[C$a==M_a[3] & C$t==M_t[1],]$r=ra3 
+C[C$a==M_a[3] & C$t==M_t[1],]$std=stda3
+
+C[C$a==M_a[3] & C$t==M_t[2],]$p=pa3*4/10 
+C[C$a==M_a[3] & C$t==M_t[2],]$r=2*ra3+da3
+C[C$a==M_a[3] & C$t==M_t[2],]$std=stda3
+
+C[C$a==M_a[3] & C$t==M_t[3],]$p=pa3*1/10 
+C[C$a==M_a[3] & C$t==M_t[3],]$r=2*ra3+2*da3
+C[C$a==M_a[3] & C$t==M_t[3],]$std =stda3
+
+C[C$a==M_a[3] & C$t==M_t[4],]$p=pa3*1/10 
+C[C$a==M_a[3] & C$t==M_t[4],]$r=2*ra3+3*da3
+C[C$a==M_a[3] & C$t==M_t[4],]$std=stda3
  
+library("msm")
+
+popp=c();
+for (o in M_a) {
+  for (oo in M_t){
+    nn = round(n*C[C$a==o & C$t==oo,]$p,0)
+    rr = C[C$a==o & C$t==oo,]$r
+    stdd=C[C$a==o & C$t==oo,]$std
+    poppp=cbind(c(rep(o,nn)), c(rep(oo,nn)), c(round(rtnorm(nn, mean=rr, sd=stdd, lower=rmin, upper=rmax),0)), c(rep(0,nn)))
+    popp=rbind(popp, poppp)
+  } # fin for oo 
+  } # fin for o
+pop=data.frame(a=as.factor(popp[,1]),t=as.factor(popp[,2]),r=as.integer(popp[,3]), rp=as.integer(popp[,4]) )
+
+
+# construction des déciles
+Deciles=(1:9)/10
+Da=c()
+for (o in M_a) {
+  Data=pop[pop$a==o,]$r
+  Daa=c(o,round(quantile(Data,Deciles),0)) 
+  Da=rbind(Da,Daa)
+}
+
+Dt=c()
+for (o in M_t) {
+  Data=pop[pop$t==o,]$r
+  Dtt=c(o,round(quantile(Data,Deciles),0)) 
+  Dt=rbind(Dt,Dtt)
+}
+
 
 
 
