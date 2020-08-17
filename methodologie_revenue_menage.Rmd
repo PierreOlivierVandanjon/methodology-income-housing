@@ -9,21 +9,88 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+La bonne version est une combinaison de la version qui est sur le macbook air et de celle qui est sur github !!!!
+
 # Introduction
 
-Ce document a pour objectif de proposer une méthode pour l'ajout de la variable revenue à une population synthétique qui ne contient pas cette variable. En revanche, il est connu les déciles de cette variable pour certains marginaux. Cette méthode est implémentée en R. Elle est donnée sous la forme d'un exemple qui permet de tester différentes méthodologies. Dans la suite, nous présentons le cas d'étude, puis la méthodologie et enfin son application sur le cas étudié.
+Ce document a pour objectif de proposer une méthode pour l'ajout de la variable revenue à une population synthétique qui ne contient pas cette variable. En revanche, il est connu les déciles de cette variable pour certaines variables qualitatives. Cette méthode est implémentée en R. Elle est donnée sous la forme d'un exemple qui permet de tester différentes méthodologies. Dans la suite, nous présentons le cas d'étude, puis la méthodologie et enfin son application sur le cas étudié.
 
 # Le cas d'étude: 
 
+A Prendre la version qui est sur le macbook air et qui génère directementla population synthétique.
+
+Ce que je propose est d'utiliser une loi normale tronquée entre Rmin et Rmax puis de calculer ensuite les déciles
+en utilisant  rtnorm du package msm avec Rmin et Rmax et en utilisant 
+la moyenne
+
+
+
 sur l'iris, en faisant l'hypothèse de l'identité entre la personne de référende fiscale et la personne de référence du recensemsent, nous avons 20 ménages dont la personne de référence a entre 0 et 30 ans, 
+Moyenne de 12 000 ecart type de 3 000 avec Rmin et Rmax
+5/10 de taille 1 revenu 
+3/10 de talle 2 revenu x 2 + 1 000
+2/10 de taille 3 revenu x 2 + 3 000 
+1/10 de taille 4 revenu x 2 + 4 000
+
 70 qui ont entre 30 et 60 ans
+Moyenne de 15 000 avec un ecart type de 4 000 avec Rmin et Rmax
+1/10 de taille 1 revenu 
+2/10 de talle 2 revenu x 2 + 2 000
+3/10 de taille 3 revenu x 2 + 6 000 
+4/10 de taille 4 revenu x 2 + 8 000
+
+
 et 10 qui sont supérieur à 60 ans.
+Moyenne de 13 000 ecart type de 5 000 avec Rmin et Rmax
+4/10 de taille 1
+4/10 de taille 2 revenu x2 + 1000
+1/10 de taille 3 revenu x2 + 3000
+1/10 de taille 4 revenu x3 + 4000
+
+
 pour ceux dont la personne de référende est entre 0 et 30 ans, les 9 déciles sont les valeurs suivantes se reproduisent ainsi
 5000,  10000, 15000, 16000, 17000, 18000, 20000, 22000, 250000
 pour ceux qui ont entre 30 et 60 ans, on augmente de 5000
 et pour ceux qui sont à la retraite, on prend les 4 premiers déciles des jeunes et les 5 suivants des personnes actives
 
+```
+M_a=c('moins_de_30ans', '30-60ans','plus_de_60ans') # Modalite age
+M_t=c('1', '2','3','4_et_plus') # Modalite taille
+C=expand.grid(a=M_a,t=M_t,p=0,r=0,std=0) # tableau de contingence
+n=100 # N doit être divisible par 100
+rmin=5000
+rmax=10*rmin
 
+pa1=0.2 # proportion de personnes ayant l'age 1
+ra1=12000
+da1=1000
+stda1=3000
+
+C[C$a==M_a[1] & C$t==M_t[1],]$p=pa1*5/10 
+C[C$a==M_a[1] & C$t==M_t[1],]$r=ra1 
+C[C$a==M_a[1] & C$t==M_t[1],]$std=stda1
+
+C[C$a==M_a[1] & C$t==M_t[2],]$p=pa1*3/10 
+C[C$a==M_a[1] & C$t==M_t[2],]$r=2*ra1+da1
+C[C$a==M_a[1] & C$t==M_t[2],]$std=stda1
+
+C[C$a==M_a[1] & C$t==M_t[3],]$p=pa1*2/10 
+C[C$a==M_a[1] & C$t==M_t[3],]$r=2*ra1+2*da1
+C[C$a==M_a[1] & C$t==M_t[3],]$std =stda1
+
+C[C$a==M_a[1] & C$t==M_t[4],]$p=pa1*1/10 
+C[C$a==M_a[1] & C$t==M_t[4],]$r=2*ra1+3*da1
+C[C$a==M_a[1] & C$t==M_t[4],]$std=stda1
+
+
+
+pa2=0.7 # proportion de personnes ayant l'age 2
+pa3=0.1 # proportion de personnes ayant l'age 3
+ 
+
+
+
+```
 ```
 data_iris_age=data.frame(age=factor(),effectif=integer())
 modalite_age=c('moins_de_30ans', '30-60ans','plus_de_60ans')
@@ -95,7 +162,7 @@ Même si rk et rl sont différents, il est intéressant de calculer ces 20 valeu
 
 Ensuite, il faut estimer 
 $$P((\text{a et t}) \; | \; r)$$
-Pour cela, nous allons utiliserla méthodologie de l'entropie croisée : nous allons considérer que cette probabilité doit être la plus proche de P(a et t)
+Pour cela, nous allons utiliser la méthodologie de l'entropie croisée : nous allons considérer que cette probabilité doit être la plus proche de P(a et t)
 tout en respectant les déciles P(rl sachant ai) pour tout l et pour tout i et P(rk schant tj) pour tout k et pour tout j.
 
 Nous allons calculer P( a et t sachant r) pour r valant rk ou rl. Sachant qu'il y a 20 déciles,  3 modalité pour l'age de la personne du référence du ménage et 4 modalités pour la taille du ménages, nous avons 240 degrés de libertés
@@ -134,7 +201,11 @@ pour tout k et pour tout l. En faisant une interpolation linéaire entre les val
 
 # Application
 
-En cours de développement.... A faire avec Fabrice
+En cours de développement....
+Utiliser MinxEnt de R.
+
+Mise en oeuvre : 
+partir de l'IRIS avec les revenus
 
 
 ```
