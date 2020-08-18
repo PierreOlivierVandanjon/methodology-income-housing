@@ -15,54 +15,42 @@ La bonne version est une combinaison de la version qui est sur le macbook air et
 
 Ce document a pour objectif de proposer une méthode pour l'ajout de la variable revenue à une population synthétique qui ne contient pas cette variable. En revanche, il est connu les déciles de cette variable pour certaines variables qualitatives. Cette méthode est implémentée en R. Elle est donnée sous la forme d'un exemple qui permet de tester différentes méthodologies. Dans la suite, nous présentons le cas d'étude, puis la méthodologie et enfin son application sur le cas étudié.
 
+Règles d'écriture : 
+les noms des scalaires sont en minuscule
+les noms des objets de dimensions supérieurs commencent par une majuscule
+les noms des fonctions commencent par deux majuscules
+
 # Le cas d'étude: 
+Le nombre d'individus de la population est n qui doit être un multiple de 100. 
 
-A Prendre la version qui est sur le macbook air et qui génère directementla population synthétique.
+Nous générons une population synthétique avec deux variables qualitatives age de la personne de référence et taille du ménage. 
 
-Ce que je propose est d'utiliser une loi normale tronquée entre Rmin et Rmax puis de calculer ensuite les déciles
-en utilisant  rtnorm du package msm avec Rmin et Rmax et en utilisant 
-la moyenne
+Nous construisons un tableau de contingence qui croisent toutes les modalités des deux variables et qui contient pour chaque modalité croisée, sa proportion dans la population, le revenu moyen de cette proportion, l'écart type du revenu. A partir de ce tableau, nous allons générer la population synthétique en utilisant pour chaque modalitée croisée une loi normale tronquée entre le revenu minimum, rmin, et le revenu maximum, rmax, 
 
-
-
-sur l'iris, en faisant l'hypothèse de l'identité entre la personne de référende fiscale et la personne de référence du recensemsent, nous avons 20 ménages dont la personne de référence a entre 0 et 30 ans, 
-Moyenne de 12 000 ecart type de 3 000 avec Rmin et Rmax
-4/10 de taille 1 revenu 
-3/10 de talle 2 revenu x 2 + 1 000
-2/10 de taille 3 revenu x 2 + 2 000 
-1/10 de taille 4 revenu x 2 + 3 000
-
-70 qui ont entre 30 et 60 ans
-Moyenne de 15 000 avec un ecart type de 4 000 avec Rmin et Rmax
-1/10 de taille 1 revenu 
-2/10 de talle 2 revenu x 2 + 2 000
-3/10 de taille 3 revenu x 2 + 4 000 
-4/10 de taille 4 revenu x 2 + 6 000
-
-
-et 10 qui sont supérieur à 60 ans.
-Moyenne de 13 000 ecart type de 5 000 avec Rmin et Rmax
-4/10 de taille 1
-4/10 de taille 2 revenu x2 + 1000
-1/10 de taille 3 revenu x2 + 2000
-1/10 de taille 4 revenu x3 + 3000
-
-
-pour ceux dont la personne de référende est entre 0 et 30 ans, les 9 déciles sont les valeurs suivantes se reproduisent ainsi
-5000,  10000, 15000, 16000, 17000, 18000, 20000, 22000, 250000
-pour ceux qui ont entre 30 et 60 ans, on augmente de 5000
-et pour ceux qui sont à la retraite, on prend les 4 premiers déciles des jeunes et les 5 suivants des personnes actives
-
-```
+```{r}
 M_a=c('moins_de_30ans', '30-60ans','plus_de_60ans') # Modalite age
 M_t=c('1', '2','3','4_et_plus') # Modalite taille
 C=expand.grid(a=M_a,t=M_t,p=0,r=0,std=0) # tableau de contingence
 n=100 # N doit être divisible par 100
 rmin=5000
 rmax=10*rmin
+print(C)
+```
 
+
+
+
+sur l'iris, en faisant l'hypothèse de l'identité entre la personne de référende fiscale et la personne de référence du recensemsent, nous supposons 20% des ménages dont la personne de référence a entre 0 et 30 ans, 
+le revenu des ménages qui sont de taille 1 a une Moyenne de 12 000 et un ecart type de 3 000 avec Rmin et Rmax qui. Cette propriété de base varie selon la taille des ménages
+
+4/10 de taille 1 avec ce revenu 
+3/10 de talle 2 revenu x 2 + 1 000
+2/10 de taille 3 revenu x 2 + 2 000 
+1/10 de taille 4 revenu x 2 + 3 000
+
+```{r}
 pa1=0.2 # proportion de personnes ayant l'age 1
-ra1=12000
+ra1=12000 
 da1=1000
 stda1=3000
 
@@ -82,8 +70,17 @@ C[C$a==M_a[1] & C$t==M_t[4],]$p=pa1*1/10
 C[C$a==M_a[1] & C$t==M_t[4],]$r=2*ra1+3*da1
 C[C$a==M_a[1] & C$t==M_t[4],]$std=stda1
 
+```
 
 
+70% qui ont entre 30 et 60 ans
+revenu de la taille 1 : Moyenne de 15 000 avec un ecart type de 4 000 avec Rmin et Rmax
+1/10 de taille 1 avec ce  revenu 
+2/10 de talle 2 revenu x 2 + 2 000
+3/10 de taille 3 revenu x 2 + 4 000 
+4/10 de taille 4 revenu x 2 + 6 000
+
+```{r}
 pa2=0.7 # proportion de personnes ayant l'age 2
 ra2=15000
 da2=2000
@@ -105,10 +102,18 @@ C[C$a==M_a[2] & C$t==M_t[4],]$p=pa2*4/10
 C[C$a==M_a[2] & C$t==M_t[4],]$r=2*ra2+3*da2
 C[C$a==M_a[2] & C$t==M_t[4],]$std=stda2
 
+```
 
 
 
+et 10% qui sont supérieur à 60 ans.
+Moyenne de 13 000 ecart type de 5 000 avec Rmin et Rmax
+4/10 de taille 1 avec ce revenu
+4/10 de taille 2 revenu x2 + 1000
+1/10 de taille 3 revenu x2 + 2000
+1/10 de taille 4 revenu x3 + 3000
 
+```{r}
 pa3=0.1 # proportion de personnes ayant l'age 3
 ra3=13000
 da3=1000
@@ -129,164 +134,235 @@ C[C$a==M_a[3] & C$t==M_t[3],]$std =stda3
 C[C$a==M_a[3] & C$t==M_t[4],]$p=pa3*1/10 
 C[C$a==M_a[3] & C$t==M_t[4],]$r=2*ra3+3*da3
 C[C$a==M_a[3] & C$t==M_t[4],]$std=stda3
- 
-library("msm")
+ print(C)
+```
 
-popp=c();
+A partir du tableau, C, la population synthétique est construite en utilisant la loi normale tronquée, fonction rtnorm du package msm.
+Chaque individu de la population synthétique comprend un modalité d'age, a,  une modalité de taille, t, un revenu, r, et le revenu qui sera prêdit par notre modèle, rp.
+
+ATTENTION : le noyau du moteur aléatoire a été mis à 1 afin d'obtenir les mêmes résultats à chaque execution
+
+
+```{r}
+library("msm")
+set.seed(1)
+
+Popp=c();
 for (o in M_a) {
   for (oo in M_t){
     nn = round(n*C[C$a==o & C$t==oo,]$p,0)
     rr = C[C$a==o & C$t==oo,]$r
     stdd=C[C$a==o & C$t==oo,]$std
-    poppp=cbind(c(rep(o,nn)), c(rep(oo,nn)), c(round(rtnorm(nn, mean=rr, sd=stdd, lower=rmin, upper=rmax),0)), c(rep(0,nn)))
-    popp=rbind(popp, poppp)
+    Poppp=cbind(c(rep(o,nn)), c(rep(oo,nn)), c(round(rtnorm(nn, mean=rr, sd=stdd, lower=rmin, upper=rmax),0)), c(rep(0,nn)))
+    Popp=rbind(Popp, Poppp)
   } # fin for oo 
   } # fin for o
-pop=data.frame(a=as.factor(popp[,1]),t=as.factor(popp[,2]),r=as.integer(popp[,3]), rp=as.integer(popp[,4]) )
+Pop=data.frame(a=as.factor(Popp[,1]),t=as.factor(Popp[,2]),r=as.integer(Popp[,3]), rp=as.integer(Popp[,4]) )
+print(Pop)
+```
+Les déciles correspondants à chaque modalité de chacune des variables qualitatives taille et age sont construits et sont rangés dans deux tableaux, D_a et D_t.
 
+```{r}
 
 # construction des déciles
 Deciles=(1:9)/10
-Da=c()
-for (o in M_a) {
-  Data=pop[pop$a==o,]$r
-  Daa=c(o,round(quantile(Data,Deciles),0)) 
-  Da=rbind(Da,Daa)
-}
 
-Dt=c()
-for (o in M_t) {
-  Data=pop[pop$t==o,]$r
-  Dtt=c(o,round(quantile(Data,Deciles),0)) 
-  Dt=rbind(Dt,Dtt)
-}
+# ce code est utilisé autant de fois qu'il y a des variables qualitatives, c'est la raison pour laquelle il est transformé en fonction
+TAbleau_deciles=function(v,M,P=Pop,D=Deciles,rmini=rmin, rmaxi=rmax) # entree  variable qui est un caractère donnant le nom de la variable qualitative, vecteurs des modalités de la variable, population qui est un data frame décrit précedemment,Decile, rmin revenu minimal, rmax, revenu maximal
+ {
+# v="t"
+# M=M_t
+# P=Pop 
+# D=Deciles
+# rmini=rmin
+# rmaxi=rmax
 
+  Da=c()
+  
+  for (o in M) {
+    Data=P[P[[v]]==o,]$r
+    Daa=c(as.integer(round(quantile(Data,D),0))) 
+    Da=rbind(Da,Daa)
+    
+  }
+  
+  Tab=data.frame(M)
+  Tab$d0= as.integer(rmini)
+  for (k in 1:length(D)) {
+    varname=paste0("d", as.character(100*D[k]))
+    Tab[[varname]]=Da[,k]
+  }
+  Tab$d100= as.integer(rmaxi)
+  #names(Tab)[names(Tab)=='M']=v; J'ai retiré ceci afin de pouvoir fusionner plus facilement les tableaus dans la suite pour calculer le vecteur R
+  
+  Tab
+} # fin fonction  construit decile
 
-
-
+D_a=TAbleau_deciles(v="a",M=M_a)
+D_t=TAbleau_deciles(v="t",M=M_t)
+print(D_a)
+print(D_t)
 ```
-```
-data_iris_age=data.frame(age=factor(),effectif=integer())
-modalite_age=c('moins_de_30ans', '30-60ans','plus_de_60ans')
-data_iris_age=rbind(data_iris_age,c(modalite_age[1],20), c(modalite_age[2],70), c(modalite_age[3],10))
-colnames(data_iris_age)=c('age','effectif')
 
-
-decile_0_30ans=c(5000,  10000, 15000, 16000, 17000, 18000, 20000, 22000, 25000)
-carriere=5000
-decile_30_60ans=decile_0_30ans+carriere
-pauvre=1:4
-riche=5:9
-decile_60_100ans=c(decile_0_30ans[pauvre], decile_30_60ans[riche])
-
-data_fisc_age=rbind(c(modalite_age[1],decile_0_30ans), c(modalite_age[2],decile_30_60ans), c(modalite_age[3],decile_60_100ans))
-colnames(data_fisc_age)=c('age','d1','d2','d3','d4','d5','d6','d7','d8','d9')
-
-```
-
-sur l'iris, en faisant l'hypothèse de l'identité entre la personne de référende fiscale et la personne de référence du recensemsent, nous avons 10 ménages dont la taille de personne est 1
-50 sont la taille est 2, 30 dont la taille est 3
-et 10 qui sont supérieur à 3.
-pour ceux dont la taille est 1  les 9 déciles sont les valeurs suivantes se reproduisent ainsi
-5000,  10000, 15000, 16000, 17000, 18000, 20000, 22000, 250000 + 1000
-pour ceux dont la taille est 2   on multiplie par 2
-pour ceux dont la taille est 3   on augmente de 1000
-pour ceux dont la taille est  supérieur à 3   on augmente de 1000
-on prend les 4 premiers déciles de la taille 2 et les 5 suivants de la taille 3
-
-```
-data_iris_taille=data.frame(taille=factor(),effectif=integer())
-modalite_taille=c('1', '2','3','4_et_plus')
-data_iris_taille=rbind(data_iris_taille,c(modalite_taille[1],20), c(modalite_taille[2],50), c(modalite_taille[3],30), c(modalite_taille[4],10))
-colnames(data_iris_taille)=c('taille','effectif')
-
-
-decile_1=c(5000,  10000, 15000, 16000, 17000, 18000, 20000, 22000, 25000)+1000
-decile_2=decile_1*2
-decile_3=decile_2+1000
-pauvre=1:4
-riche=5:9
-decile_4_et_plus=c(decile_1[pauvre], decile_3[riche])
-data_fisc_taille=rbind(c(modalite_taille[1],decile_1), c(modalite_taille[2],decile_2), c(modalite_taille[3],decile_3),  c(modalite_taille[4],decile_4_et_plus))
-
-colnames(data_fisc_taille)=c('taille','d1','d2','d3','d4','d5','d6','d7','d8','d9')
-```
 
 
 # Méthodologie
 
-Note : dans la suite r signifie : le revenu est inférieur à r. a signie : l'age de la personne de référence du ménage est égale à la modalité a. t signifie la taille du ménage est égale à la modalité t. 
+Note : dans la suite r signifie : le revenu est égal à r. a signie : l'age de la personne de référence du ménage est égale à la modalité a. t signifie la taille du ménage est égale à la modalité t. 
 
-Nous souhaitos connaitre pour tout revenu, r,compris entre le revenu minimal, rmin, la probabilité que le revenu soit inférieur à r sachant que la taialle du ménage est t et l'age de la personne du ménage est a. Ce qui s'écrit mathématiquement :
+Nous souhaitons connaitre la loi du revenu sachant que la taille du ménage est t et l'age de la personne du ménage est a. Ce qui s'écrit mathématiquement :
 
 $$ P(r \; | \; (\text{a et t})) $$
+Nous utilisons la notation P pour probabilité alors que c'est une densité de probabilité qui est plutôt noté f. Dans la suite, cette fonction de densité sera discrétisé, la notation P sera, alors, la notation naturelle.
+
+
+L'hypothèse principale est que nous supposons une approximation linéaire entre deux déciles. Concrêtement, si le revenu correspondant au decile à 20 % est de 10 000 euros et que le revenu correspondant au décile à 30 % est 15 000 euros, nous supposerons que les revenus obeissent à une loi uniforme enter 10 000 euros et 15 000 euros dont l'intégrale entre ces deux bornes vaut 0.1. Ceci est une hypothèse qui ne correspond pas à la façon dont nous avons construit les revenus. Les revenus ont été construits à partir d'une loi gaussienne tronquée.
+
 En appliquant le théorème de Bayes, nous obtenons
 
 $$P(r \; | \; (\text{a et t}))=P((\text{a et t}) \; | \; r) \frac{P(r)}{P(\text{a et t})}$$
+Une interprétation de cette formule est la suivante. Si le revenu est indépendant de la taille du ménage et de l'age du ménage, la loi de probabilité pour les modalités croisées correspondant à la loi de probabilité générale des revenus. Sinon, cette loi de probabilité est modulée par le rapport entre la probabilié des modalités croisées connaissant r et la probabilité de la modalité croisé. Nous verrons par la suite que la probabilité des modalités croisées connaissant r est, elle même, calculée à partir des probabilités des modalités croisés modifiées pour tenir compte des informations fournies par les déciles.
+
 Une règle de trois sur la population synthétique permet  de connnaitre
 $$P(\text{a et t})$$
-La connaissance des déciles sur le revenu et la proportion de chacune des modalité permet de connaitre 
-$$P(r_k) = \sum_i P(r_k| a_i)P(a_i)$$
-rk est le revenu correspondant au décile k (k=0.1,0.2,0.3,...1), al correspont à la modalité l de l'age de la personne de référence du ménage
-
+La connaissance des déciles sur le revenu et la proportion de chacune des modalité permet de connaitre P(r)
+$$P(r) = \sum_i P(r| a_i)P(a_i)$$
 On peut aussi faire le calcul avec les modalités sur la taille : 
 
-$$P(r_l) = \sum_j P(r_l| t_j)P(t_j)$$
-Même si rk et rl sont différents, il est intéressant de calculer ces 20 valeurs pour vérifier visuellement leurs cohérences.
+$$P(r) = \sum_j P(r| t_j)P(t_j)$$
+Il est intéressant de comparer ces deux lois de probabilités. C'est un sujet à discuter.
 
 Ensuite, il faut estimer 
 $$P((\text{a et t}) \; | \; r)$$
 Pour cela, nous allons utiliser la méthodologie de l'entropie croisée : nous allons considérer que cette probabilité doit être la plus proche de P(a et t)
-tout en respectant les déciles P(rl sachant ai) pour tout l et pour tout i et P(rk schant tj) pour tout k et pour tout j.
-
-Nous allons calculer P( a et t sachant r) pour r valant rk ou rl. Sachant qu'il y a 20 déciles,  3 modalité pour l'age de la personne du référence du ménage et 4 modalités pour la taille du ménages, nous avons 240 degrés de libertés
+tout en respectant les lois de probabilités issus des  déciles P(r sachant a)t P(r schant t) en faisant une interpolation linéaire entre les déciles suivant l'hypothèse principale. Ce qui s'écrit
 
 
+$$ Min \; -\sum_{i,j} P( a_i \text{ et } t_j) \; | \; r) \ln(P(a_i \text{ et } t_j)) $$
+Sous les contraintes
+$$\sum_{j} P( a_i \text{ et } t_j \; | \; r) = P(a_i \; | \; r) = P(r \; | \; a_i)\frac{P(a_i)}{P(r)}  $$
+et
+$$  \sum_i P( a_i \text{ et } t_j \; | \; r) = P(t_j \; | \; r)= P(r \; | \; t_j)\frac{P(t_j)}{P(r)} $$
 
-Concrêtement, pour connaitre par exemple, P ((a et t) sachant r1) où r1 correspond au revenu du  premier décile lorsque l'age de référence est égale 
+Dans notre cas d'étude, il y a 12 degrés de liberté et 7 contraintes. 
 
-$$ Min \; -\sum_{i,j,k,l} P(\text{ai et tj} \; | \; r_{k,l}) \ln(P(\text{a_i et t_j})) $$
-sous les contraintes
 
-$$P(r_k \; | \; a_i) =k\times 0.1$$
-$$P(r_l \; | \; t_j) =l\times 0.1$$
-soit 70 contraintes
+Cependant, nous n'allons pas résoudre ce problème d'optimisation pour tous les revenus r. Nous construisons un vecteur de revenu, R, qui concatène tous les revenus correspondants à tous les déciles. Ce vecteur de revenu est trié depuis rmin jusqu'à rmax qui correspond à une discrétisation de la variable revenue. Entre chaque élément successif du vecteur revenu, il n'y a pas d'information supplémentaire que celle contenu dans les deux bornes du revenu.
 
-Dans la suite, nous nous concentrons sur une contrainte pour voir sa relation avec les degrés de liberté:
-$$P(r_1 \; | \; a_1) = P(a_1 \; | \; r_1)\frac{P(r_1)}{P(a_1)} $$ 
-P(a1) est un maginal de la population synthétique. P(r1) a été calculé précedemment et P(a1 sachant r1) s'écrit en fonction des degrés de liberté:
 
-$$P(a_1 \; | \; r_1) = P(a_1 \text{ et } b_1| \; r_1) + P(a_1 \text{ et } b_2| \; r_1) + P(a_1 \text{ et } b_3| \; r_1) + P(a_1 \text{ et } b_4 | \; r_1) $$
+Comme il y a 7 modalités, cela correspond à 62 optimisation (7x9-1 + les deux intervalles avec rmin et rmax)... Les optimisations sont proches les unes des autres, nous pourrions, dans un second temps, améliorer le temps de calcul... A discuter
 
-Ce problème d'optimisation peut être diviser en 20 problèmes de minimisations indépendants comprenant chacun 12 degrés de liberté et 1 contrainte.
-Par exemple, en choisissant de travailler sur r1.
 
-$$ Min \; -\sum_{i,j} P(\text{ai et tj} \; | \; r_{1}) \ln(P(\text{ai et tj}))$$
 
-Si on appel P chapeau la solution du problème d'optimisation, nous trouvons
+Une fois cette optimisation efffectuée, nous connaitrons 
 
-$$P(r1 \; | \; (\text{ai et tj}))=\widehat{P}((\text{ai et tj}) \; | \; r1) \frac{P(r1)}{P(\text{ai et tj})}$$
-Après avoir réalisé les 20 optimisations, nous aurons
-
-$$P(r_{k,l} \; | \; (\text{ai et tj}))$$
-pour tout k et pour tout l. En faisant une interpolation linéaire entre les valeurs rk, rl, nous obtenons la loi de probabilité du revenu connaissant ai et tj et donc, nous pouvons tirer un revenu au hasard pour tous les couples (ai, tj)
-
+$$P(rk \; | \; (\text{a et t})) \text{ avec } rk = [R(k-1), R(k)] \; \forall \; k$$
+Pour une modalité, nous avons une loi de probabilité sur le revenu. Nous tirons alors au hasard un intervalle, rk, et nous tirerons alors au hasard au sein de cet intervalle.
 
 
 # Application
 
-En cours de développement....
-Utiliser MinxEnt de R.
+La probabilité des modalités croisées est directement donnée dans le tableau d'occurence.
 
-Mise en oeuvre : 
-partir de l'IRIS avec les revenus
+Amélioration : dans le code, il est supposé que toutes les modalités de toutes les variables ont des noms différents, ceci est à durcir
+
+Construction du vecteur R
+```{r}
+D_at= rbind(D_a, D_t)
+D_at$V=c(rep("a",length(M_a)),rep("t",length(M_t)) )
+
+D_atn = D_at[, names(D_at)!="M" & names(D_at)!="d0" & names(D_at)!="d100" & names(D_at) != "V"]
+D_mat=as.matrix(D_atn)
+D_vat=as.vector(D_mat)
+R=c(rmin, c(D_vat),rmax)
+R=sort(R, decreasing = FALSE)
+
+
 
 
 ```
-R=20000
-age=modalite_age[1]
-taille=modalite_taille[1]
-p=c(1:9)/10
-data_iris_taille[modalite_taille[1],2:]
-PRAge=data.frame(p)
+Construction de la fonction proba qui donne la probabilité de l'intervalle d'un revenu connaissant sa modalité
+```{r}
+proba=function(m,r_inf=rmin,r_sup=rmax,D=D_at){ #
+  p=(0:10)/10
+  nd =dim(D)[2] # nombre de colonnnes
+  D_r=as.double(D[D[,1]==m,names(D)!="M" & names(D) != "V"])#distribution revenu
+  p_inf=approx(D_r,p, xout=r_inf, method="linear", ties="ordered")$y
+  p_sup=approx(D_r,p, xout=r_sup, method="linear", ties="ordered")$y
+  as.double(p_sup-p_inf)
+}
+  
+
+
 ```
+
+Utilisation de minxent(q, G, eta, lambda)
+
+Arguments
+q 	a priori distribution.
+G 	matrix of moment vector functions.
+eta 	vector of moment constraints.
+lambda 	initial points for langrangian multipliers.
+```{r}
+library(minxent)
+r1=R[1]
+r2=R[2]
+p_at=as.double(C$p) ; # P(a et t) directement donné par la matrice de contingence
+na = length(M_a)
+nt = length(M_t)
+nlib=na*nt # nombre de degrés de liberté
+
+Moment=matrix(rep(0, (na+nt+1)*nlib), nrow=na+nt+1,ncol=nlib)
+Moment[1,]=as.double(rep(1,nlib))
+Eta=matrix(rep(0,na+nt+1), nrow=na+nt+1, ncol=1)
+Eta[1]=as.double(1)
+k=1
+
+D_at$p=rep(0,na+nt)
+for (m in D_at$M) {
+  k=k+1
+  v=D_at$V[k-1]
+  p_r_m=proba(m,r_inf=r1,r_sup=r2,D=D_at[, names(D_at)!="p"]) # probabilité de ce revenu sachant la modalité m mais il faut enlever la colonne rajoutée dans D_at, ceci est à améliorer
+  
+  if (v=="a") {
+    toto = C[C$a == m,]
+    I=as.integer(row.names(toto))
+    p_m=sum(toto$p)
+    }
+  else {
+    toto = C[C$t == m,]
+    I=as.integer(row.names(toto))
+    p_m=sum(toto$p)
+  } # fin si nous ne somme pas dans une modalité qui appartient à l'age, donc nous somme dans une modalité qui appartient à la taille
+D_at$p[k-1]=p_r_m*p_m
+Moment[k,I]= rep(1, length(I))
+} # fin de la boucle sur toutes le modalités de toutes les variables
+
+# pour calculer eta, il faut connaite p_r qu peut être calculé selon a, c'est p_r_a ou selon t, c'est p_r_t, ceci est à réfléchier
+
+p_r_a_m= D_at[D_at$V=="a",]$p
+p_r_a=sum(p_r_a_m)
+Eta[2:(na+1)]=p_r_a_m/p_r_a
+
+p_r_t_m= D_at[D_at$V=="t",]$p
+p_r_t=sum(p_r_t_m)
+Eta[(na+2):(na+nt+1)]=p_r_t_m/p_r_t
+
+
+
+# minxent ne gère pas les chutes de rang... Nous pourrions les gérer intelligemment, il faut réfléchir, en attendant
+
+A=qr(t(Moment))
+I=A$pivot[1:(A$rank-2)]
+p_at_r=minxent.multiple(q=p_at,G=Moment[I,],eta=c(Eta[I]),lambda=c(rep(0,A$rank-3)))$Estimates
+
+  
+  
+
+```
+
+
+
+
+
+
