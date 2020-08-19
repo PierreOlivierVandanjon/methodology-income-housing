@@ -497,10 +497,11 @@ Data=Pop[Pop$a==Res$a[k] & Pop$t==Res$t[k],]$r;
   Res$mPredit[k]= sum( (R1+R2)/2*p_R_a_t )
   varPredit=sum(  ((R2^3-R1^3)/3) / (R2-R1) *p_R_a_t ) - Res$mPredit[k]^2
   Res$stdPredit[k]=sqrt(varPredit)
-  print(Res)
   
 }
 
+print(Res)
+  
 
 
 ```
