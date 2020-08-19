@@ -347,6 +347,8 @@ G 	matrix of moment vector functions.
 eta 	vector of moment constraints.
 lambda 	initial points for langrangian multipliers.
 
+** Il faut vérifier que ce relativement vieux code minimise bien l'entropie croisée et pas la divergence de divergence de kullback leibler, vérifier les deux approches... A approfondir**
+
 *Il y a une grosse différence entre p_r_a et p_r_t : c'est à dire les probablité de R calculé à partir de la taille du ménage et celle calculée à partir de l'age de la personne de référence... Ceci est à discuter, le data frame Ss permet d'alimenter cette discussion*
 
 *Erreur numérique sur minxent : Sur 10% des optimisations, nous avons une erreur numérique dans l'utilisation de minxent.multiple.  En première analyse, je pense que cette erreur provient de l'incohérence entre p_r_a et p_r_t. Donc, en cas d'erreur numérique, il n'est choisé de coller qu'aux déciles de la variable taille car ce sont les déciles qui apportent, a priori, la meilleur information puisque le revenu est fortement corrélé avec la taille... Ceci se discute*
