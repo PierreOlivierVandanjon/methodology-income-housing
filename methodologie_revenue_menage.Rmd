@@ -513,7 +513,15 @@ Ce data frame fournit pour les 12 modalités croisées la proportion de la modal
 
 **La moyenne est bien prédite, l'écart type est surévalué mais dans des proportions acceptables.... A discuter**
 
+# Une autre technique
 
+$$ Min \; -\sum_{i,j} P( a_i \text{ et } t_j  \text{ et }  r) \ln(P( a_i \text{ et } t_j  \text{ et }  r)) $$
+sous les contraintes
+
+$$ \sum_{r} P( a_i \text{ et } t_j  \text{ et }  r) = P( a_i \text{ et } t_j) $$
+et
+
+$$ \sum_{i} P(a_i \text{ et } t_j \text{ et } r) = P(r | a_i) P(a_i)$$
 
 
 
