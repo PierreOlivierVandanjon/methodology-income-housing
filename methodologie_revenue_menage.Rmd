@@ -9,20 +9,19 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-
 # Introduction
 
 Ce document a pour objectif de proposer une méthode pour l'ajout de la variable revenu à une population synthétique qui ne contient pas cette variable. En revanche, il est connu les déciles de cette variable pour certaines variables qualitatives. Cette méthode est implémentée en R. Elle est donnée sous la forme d'un exemple qui permet de tester différentes méthodologies. Dans la suite, nous présentons le cas d'étude, puis la méthodologie et enfin son application sur le cas étudié.
 
-Règles d'écriture : 
+Règles d'écriture :
 * les noms des scalaires sont en minuscule
 * les noms des objets de dimensions supérieurs commencent par une majuscule
 * les noms des fonctions commencent par deux majuscules
 
-# Le cas d'étude 
-Le nombre d'individus de la population n ( n  doit être un multiple de 100) . 
+# Le cas d'étude
+Le nombre d'individus de la population n ( n  doit être un multiple de 100) .
 
-Nous générons une population synthétique avec deux variables qualitatives age de la personne de référence et taille du ménage. 
+Nous générons une population synthétique avec deux variables qualitatives age de la personne de référence et taille du ménage.
 
 Nous construisons un tableau de contingence qui croisent toutes les modalités des deux variables et qui contient pour chaque modalité croisée, sa proportion dans la population, le revenu moyen de cette proportion, l'écart type du revenu. A partir de ce tableau, nous allons générer la population synthétique en utilisant pour chaque modalitée croisée une loi normale tronquée entre le revenu minimum, rmin, et le revenu maximum, rmax. Ensuite, nous construisons les déciles associées à chaque modalité de chaque variable qualitative.
 
@@ -49,38 +48,38 @@ print(C)
 
 
  Hypothèse : Identité entre la personne de référende fiscale et la personne de référence du recensement
- 
- 
+
+
 ## Construction de la population synthétique avec son revenu
 
-nous supposons 20% des ménages dont la personne de référence a entre 0 et 30 ans, 
-le revenu des ménages qui sont de taille 1 a une Moyenne de 12 000 et un ecart type de 3 000 avec Rmin et Rmax q. 
+nous supposons 20% des ménages dont la personne de référence a entre 0 et 30 ans,
+le revenu des ménages qui sont de taille 1 a une Moyenne de 12 000 et un ecart type de 3 000 avec Rmin et Rmax q.
 Cette propriété de base varie selon la taille des ménage selon les régles suivantes
 
-* 4/10 de taille 1 avec ce revenu 
+* 4/10 de taille 1 avec ce revenu
 * 3/10 de talle 2 revenu x 2 + 1 000
-* 2/10 de taille 3 revenu x 2 + 2 000 
+* 2/10 de taille 3 revenu x 2 + 2 000
 * 1/10 de taille 4 revenu x 2 + 3 000
 
 ```{r}
 pa1=0.2 # proportion de personnes ayant l'age 1
-ra1=12000 
+ra1=12000
 da1=1000
 stda1=3000
 
-C[C$a==M_a[1] & C$t==M_t[1],]$p=pa1*4/10 
-C[C$a==M_a[1] & C$t==M_t[1],]$r=ra1 
+C[C$a==M_a[1] & C$t==M_t[1],]$p=pa1*4/10
+C[C$a==M_a[1] & C$t==M_t[1],]$r=ra1
 C[C$a==M_a[1] & C$t==M_t[1],]$std=stda1
 
-C[C$a==M_a[1] & C$t==M_t[2],]$p=pa1*3/10 
+C[C$a==M_a[1] & C$t==M_t[2],]$p=pa1*3/10
 C[C$a==M_a[1] & C$t==M_t[2],]$r=2*ra1+da1
 C[C$a==M_a[1] & C$t==M_t[2],]$std=stda1
 
-C[C$a==M_a[1] & C$t==M_t[3],]$p=pa1*2/10 
+C[C$a==M_a[1] & C$t==M_t[3],]$p=pa1*2/10
 C[C$a==M_a[1] & C$t==M_t[3],]$r=2*ra1+2*da1
 C[C$a==M_a[1] & C$t==M_t[3],]$std =stda1
 
-C[C$a==M_a[1] & C$t==M_t[4],]$p=pa1*1/10 
+C[C$a==M_a[1] & C$t==M_t[4],]$p=pa1*1/10
 C[C$a==M_a[1] & C$t==M_t[4],]$r=2*ra1+3*da1
 C[C$a==M_a[1] & C$t==M_t[4],]$std=stda1
 
@@ -89,9 +88,9 @@ C[C$a==M_a[1] & C$t==M_t[4],]$std=stda1
 
 70% qui ont entre 30 et 60 ans
 revenu de la taille 1 : Moyenne de 15 000 avec un ecart type de 4 000 avec Rmin et Rmax
-* 1/10 de taille 1 avec ce  revenu 
+* 1/10 de taille 1 avec ce  revenu
 * 2/10 de talle 2 revenu x 2 + 2 000
-* 3/10 de taille 3 revenu x 2 + 4 000 
+* 3/10 de taille 3 revenu x 2 + 4 000
 * 4/10 de taille 4 revenu x 2 + 6 000
 
 ```{r}
@@ -100,19 +99,19 @@ ra2=15000
 da2=2000
 stda2=4000
 
-C[C$a==M_a[2] & C$t==M_t[1],]$p=pa2*1/10 
-C[C$a==M_a[2] & C$t==M_t[1],]$r=ra2 
+C[C$a==M_a[2] & C$t==M_t[1],]$p=pa2*1/10
+C[C$a==M_a[2] & C$t==M_t[1],]$r=ra2
 C[C$a==M_a[2] & C$t==M_t[1],]$std=stda2
 
-C[C$a==M_a[2] & C$t==M_t[2],]$p=pa2*2/10 
+C[C$a==M_a[2] & C$t==M_t[2],]$p=pa2*2/10
 C[C$a==M_a[2] & C$t==M_t[2],]$r=2*ra2+da2
 C[C$a==M_a[2] & C$t==M_t[2],]$std=stda2
 
-C[C$a==M_a[2] & C$t==M_t[3],]$p=pa2*3/10 
+C[C$a==M_a[2] & C$t==M_t[3],]$p=pa2*3/10
 C[C$a==M_a[2] & C$t==M_t[3],]$r=2*ra2+2*da2
 C[C$a==M_a[2] & C$t==M_t[3],]$std =stda2
 
-C[C$a==M_a[2] & C$t==M_t[4],]$p=pa2*4/10 
+C[C$a==M_a[2] & C$t==M_t[4],]$p=pa2*4/10
 C[C$a==M_a[2] & C$t==M_t[4],]$r=2*ra2+3*da2
 C[C$a==M_a[2] & C$t==M_t[4],]$std=stda2
 
@@ -133,19 +132,19 @@ ra3=13000
 da3=1000
 stda3=5000
 
-C[C$a==M_a[3] & C$t==M_t[1],]$p=pa3*4/10 
-C[C$a==M_a[3] & C$t==M_t[1],]$r=ra3 
+C[C$a==M_a[3] & C$t==M_t[1],]$p=pa3*4/10
+C[C$a==M_a[3] & C$t==M_t[1],]$r=ra3
 C[C$a==M_a[3] & C$t==M_t[1],]$std=stda3
 
-C[C$a==M_a[3] & C$t==M_t[2],]$p=pa3*4/10 
+C[C$a==M_a[3] & C$t==M_t[2],]$p=pa3*4/10
 C[C$a==M_a[3] & C$t==M_t[2],]$r=2*ra3+da3
 C[C$a==M_a[3] & C$t==M_t[2],]$std=stda3
 
-C[C$a==M_a[3] & C$t==M_t[3],]$p=pa3*1/10 
+C[C$a==M_a[3] & C$t==M_t[3],]$p=pa3*1/10
 C[C$a==M_a[3] & C$t==M_t[3],]$r=2*ra3+2*da3
 C[C$a==M_a[3] & C$t==M_t[3],]$std =stda3
 
-C[C$a==M_a[3] & C$t==M_t[4],]$p=pa3*1/10 
+C[C$a==M_a[3] & C$t==M_t[4],]$p=pa3*1/10
 C[C$a==M_a[3] & C$t==M_t[4],]$r=2*ra3+3*da3
 C[C$a==M_a[3] & C$t==M_t[4],]$std=stda3
  print(C)
@@ -169,7 +168,7 @@ for (o in M_a) {
     stdd=C[C$a==o & C$t==oo,]$std
     Poppp=cbind(c(rep(o,nn)), c(rep(oo,nn)), c(round(rtnorm(nn, mean=rr, sd=stdd, lower=rmin, upper=rmax),0)), c(rep(0,nn)))
     Popp=rbind(Popp, Poppp)
-  } # fin for oo 
+  } # fin for oo
   } # fin for o
 Pop=data.frame(a=as.factor(Popp[,1]),t=as.factor(Popp[,2]),r=as.integer(Popp[,3]), rp=as.integer(Popp[,4]) )
 print(Pop)
@@ -189,20 +188,20 @@ TAbleau_deciles=function(v,M,P=Pop,D=Deciles,rmini=rmin, rmaxi=rmax) # entree  v
  {
 # v="t"
 # M=M_t
-# P=Pop 
+# P=Pop
 # D=Deciles
 # rmini=rmin
 # rmaxi=rmax
 
   Da=c()
-  
+
   for (o in M) {
     Data=P[P[[v]]==o,]$r
-    Daa=c(as.integer(round(quantile(Data,D),0))) 
+    Daa=c(as.integer(round(quantile(Data,D),0)))
     Da=rbind(Da,Daa)
-    
+
   }
-  
+
   Tab=data.frame(M)
   Tab$d0= as.integer(rmini)
   for (k in 1:length(D)) {
@@ -211,7 +210,7 @@ TAbleau_deciles=function(v,M,P=Pop,D=Deciles,rmini=rmin, rmaxi=rmax) # entree  v
   }
   Tab$d100= as.integer(rmaxi)
   #names(Tab)[names(Tab)=='M']=v; J'ai retiré ceci afin de pouvoir fusionner plus facilement les tableaus dans la suite pour calculer le vecteur R
-  
+
   Tab
 } # fin fonction  construit decile
 
@@ -228,7 +227,7 @@ print(D_t)
 Note : dans la suite
 * r signifie : le revenu est égal à r;
 * a signie : l'age de la personne de référence du ménage est égale à la modalité a
-* t signifie la taille du ménage est égale à la modalité t. 
+* t signifie la taille du ménage est égale à la modalité t.
 
 Nous souhaitons connaitre la loi du revenu sachant que la taille du ménage est t et l'age de la personne du ménage est a. Ce qui s'écrit mathématiquement :
 
@@ -247,12 +246,12 @@ Une règle de trois sur la population synthétique permet  de connnaitre
 $$P(\text{a et t})$$
 La connaissance des déciles sur le revenu et la proportion de chacune des modalité permet de connaitre P(r)
 $$P(r) = \sum_i P(r| a_i)P(a_i)$$
-On peut aussi faire le calcul avec les modalités sur la taille : 
+On peut aussi faire le calcul avec les modalités sur la taille :
 
 $$P(r) = \sum_j P(r| t_j)P(t_j)$$
 *Il est intéressant de comparer ces deux lois de probabilités. C'est un sujet à discuter.*
 
-Ensuite, il faut estimer 
+Ensuite, il faut estimer
 $$P((\text{a et t}) \; | \; r)$$
 Pour cela, nous allons utiliser la méthodologie de l'entropie croisée : nous allons considérer que cette probabilité doit être la plus proche de P(a et t)
 tout en respectant les lois de probabilités issus des  déciles P(r sachant a) et P(r sachant t) en faisant une interpolation linéaire entre les déciles suivant l'hypothèse principale. Ce qui s'écrit
@@ -264,10 +263,10 @@ $$\sum_{j} P( a_i \text{ et } t_j \; | \; r) = P(a_i \; | \; r) = P(r \; | \; a_
 et
 $$  \sum_i P( a_i \text{ et } t_j \; | \; r) = P(t_j \; | \; r)= P(r \; | \; t_j)\frac{P(t_j)}{P(r)} $$
 
-Dans notre cas d'étude, il y a 12 degrés de liberté et 7 contraintes. 
+Dans notre cas d'étude, il y a 12 degrés de liberté et 7 contraintes.
 
 
-Cependant, nous n'allons pas résoudre ce problème d'optimisation pour tous les revenus r. Nous construisons un vecteur de revenu, R, qui concatène tous les revenus correspondants à tous les déciles. Ce vecteur de revenu est trié depuis rmin jusqu'à rmax qui correspond à une discrétisation de la variable revenue. 
+Cependant, nous n'allons pas résoudre ce problème d'optimisation pour tous les revenus r. Nous construisons un vecteur de revenu, R, qui concatène tous les revenus correspondants à tous les déciles. Ce vecteur de revenu est trié depuis rmin jusqu'à rmax qui correspond à une discrétisation de la variable revenue.
 
 *Cette discrétisation est issue de la remarque suivante : entre chaque élément successif du vecteur revenu, il n'y a pas d'information supplémentaire que celle contenu dans les deux bornes du revenu.*
 
@@ -278,7 +277,7 @@ Comme il y a 7 modalités, cela correspond à 64 optimisation (7x9-1 + les deux 
 
 
 
-Une fois cette optimisation efffectuée, nous connaitrons 
+Une fois cette optimisation efffectuée, nous connaitrons
 
 $$P(rk \; | \;  a_i \text{ et } t_j)  = P(   a_i \text{ et } t_j  \; | \; rk )\frac{P(r_k)}{P( a_i \text{ et } t_j )}  \text{ avec } rk = [R(k-1), R(k)] \; \forall \; k,i,j$$
 
@@ -316,7 +315,7 @@ R=Rw
 #       k=k+1
 #   }
 #   } # fin pour j
-  
+
 
 
 
@@ -332,7 +331,7 @@ proba=function(m,r_inf=rmin,r_sup=rmax,D=D_at){ #
   p_sup=approx(D_r,p, xout=r_sup, method="linear", ties="ordered")$y
   as.double(p_sup-p_inf)
 }
-  
+
 
 
 ```
@@ -346,6 +345,8 @@ q 	a priori distribution.
 G 	matrix of moment vector functions.
 eta 	vector of moment constraints.
 lambda 	initial points for langrangian multipliers.
+
+** Il faut vérifier que ce relativement vieux code minimise bien l'entropie croisée et pas la divergence de divergence de kullback leibler, vérifier les deux approches... A approfondir**
 
 *Il y a une grosse différence entre p_r_a et p_r_t : c'est à dire les probablité de R calculé à partir de la taille du ménage et celle calculée à partir de l'age de la personne de référence... Ceci est à discuter, le data frame Ss permet d'alimenter cette discussion*
 
@@ -379,7 +380,7 @@ for (m in D_at$M) {
   k=k+1
   v=D_at$V[k-1]
   p_r_m=proba(m,r_inf=r1,r_sup=r2,D=D_at) # probabilité de ce revenu sachant la modalité m
-  
+
   # ceci n'a besoin d'être calculé qu'une fois, la matrice moment ne change jamais Cette partie du code doit être mise hors de la boucle
   # cette partie du code pourrait être rendue plus élégante
   if (v=="a") {
@@ -388,12 +389,12 @@ for (m in D_at$M) {
     p_m=sum(toto$p)
     }
   else {
-    toto = C[C$t == m,] 
+    toto = C[C$t == m,]
     I=as.integer(row.names(toto))
     p_m=sum(toto$p)
   } # fin si nous ne somme pas dans une modalité qui appartient à l'age, donc nous somme dans une modalité qui appartient à la taille
 Dd_at$p[k-1]=p_r_m*p_m
-Moment[k,I]= rep(1, length(I)) 
+Moment[k,I]= rep(1, length(I))
 } # fin de la boucle sur toutes le modalités de toutes les variables
 
 # pour calculer eta, il faut connaite p_r qu peut être calculé selon a, c'est p_r_a ou selon t, c'est p_r_t, ceci est sauvegardé dans le data Frame Ss pour analyse
@@ -449,14 +450,14 @@ S[[vv]]=matrix(p_at_r, nrow=nlib, ncol=1)
 P_r_a=c(NA,NA,NA,NA,NA,P_r_anum)
 P_r_t=c(NA,NA,NA,NA,NA,P_r_tnum)
 names(P_r_a)=names(S)
-names(P_r_t)=names(S) 
+names(P_r_t)=names(S)
 Ss = rbind(S, P_r_a, P_r_t)
 Ss$pr=c(rep(NA,na*nt),'Proba_r_age','Proba_r_taille')
 print(Ss)  
 
 ```
 
-Ce data frame fournit pour les 12 modalités croisées la proportion de la modalité croisée, p, le revenu moyen, r, et l'écart type, std, qui ont permis de générer la population synthétique, puis pour les 64 modalités de revnula probabilité de la modalité sachant le revenu. Par exemple, la première ligne de R2 correspond à la probabilité d'être un ménage de moins de 30 ans de taille 1 sachant que le revenu appartient à l'intervalle entre le revenu minimum Rmin (5000 euros) et le revenu correspondant au premier décile pour toutes les modalités (qui doit être environ 8000). Cette proportion de 28% est qualitativement normale. 
+Ce data frame fournit pour les 12 modalités croisées la proportion de la modalité croisée, p, le revenu moyen, r, et l'écart type, std, qui ont permis de générer la population synthétique, puis pour les 64 modalités de revnula probabilité de la modalité sachant le revenu. Par exemple, la première ligne de R2 correspond à la probabilité d'être un ménage de moins de 30 ans de taille 1 sachant que le revenu appartient à l'intervalle entre le revenu minimum Rmin (5000 euros) et le revenu correspondant au premier décile pour toutes les modalités (qui doit être environ 8000). Cette proportion de 28% est qualitativement normale.
 
 *Les deux dernières lignes du tableau sont les probabilités de revenu calculés selon deux méthodes : soit en faisant la somme sur les modalités de l'age de la personne de référence (c'est l'avant dernière ligne), soit en faisant la somme sur les modalités de la taille du ménage (c'est la dernière ligne). Les différences, importantes, proviennent du calcul des déciles. Ceci est à analyser, notamment en fonction du nombre de ménage simulé...A discuter*
 
@@ -475,12 +476,12 @@ R2=R[2:nR]
 for (k in 1:lRes) {
 
 Data=Pop[Pop$a==Res$a[k] & Pop$t==Res$t[k],]$r;
-  
+
   if (length(Data)>0) {
     Res$mPop[k]=as.double(mean(Data))
     if (length(Data)>1) {
       Res$stdPop[k]=as.double(sd(Data))
-    } else  # fin si (length(Data)>1) 
+    } else  # fin si (length(Data)>1)
       { # cas dégénéré ou il n y a qu'une seule observation expérimentale
       Res$stdPop[k]=NA
     } # fin sinon
@@ -489,25 +490,25 @@ Data=Pop[Pop$a==Res$a[k] & Pop$t==Res$t[k],]$r;
     Res$mPop[k]=NA
     Res$stdPop[k]=NA
   } # fin sinon
-  
-  
+
+
   p_a_t_R=S[S$a==Res$a[k] & S$t==Res$t[k],6:(6+nR-2)]; # à durcir car dépend dont est construit le dataframe...
   p_R_a_t = p_a_t_R*p_R
   p_R_a_t = p_R_a_t/sum(p_R_a_t)
   Res$mPredit[k]= sum( (R1+R2)/2*p_R_a_t )
   varPredit=sum(  ((R2^3-R1^3)/3) / (R2-R1) *p_R_a_t ) - Res$mPredit[k]^2
   Res$stdPredit[k]=sqrt(varPredit)
-  
+
 }
 
 print(Res)
-  
+
 
 
 ```
-Ce data frame fournit pour les 12 modalités croisées la proportion de la modalité croisée, p, le revenu moyen, r, et l'écart type, std, qui ont permis de générer la population synthétique, 
+Ce data frame fournit pour les 12 modalités croisées la proportion de la modalité croisée, p, le revenu moyen, r, et l'écart type, std, qui ont permis de générer la population synthétique,
 * la moyenne du revenu de la population synthétique pour la modalité concerné, mPop,  
-* son écart type, stdPop (NA signifie qu'il n'y a qu'un ménage qui a cette modalité croisée, l'écart type ne peut pas être calculé), 
+* son écart type, stdPop (NA signifie qu'il n'y a qu'un ménage qui a cette modalité croisée, l'écart type ne peut pas être calculé),
 * la moyenne du revenu pour cette modalité calculée à partir de notre méthodologie de reconstruction de la loi du revenu, mPredit
 * idem pour l'écart type, stdPredit
 
@@ -522,11 +523,4 @@ $$ \sum_{r} P( a_i \text{ et } t_j  \text{ et }  r) = P( a_i \text{ et } t_j) $$
 et
 
 $$ \sum_{i} P(a_i \text{ et } t_j \text{ et } r) = P(r | a_i) P(a_i)$$
-
-
-
-
-
-
-
 
