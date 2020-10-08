@@ -524,3 +524,120 @@ et
 
 $$ \sum_{i} P(a_i \text{ et } t_j \text{ et } r) = P(r | a_i) P(a_i)$$
 
+``{r}
+# Nouvelle méthodologie
+library(minxent)
+
+# construction des contraintes ; 
+
+# somme_sur_r P(ai et ti et r) = P(ai et tj)
+# construction des etas
+C[C$a==M_a[1] & C$t==M_t[2],]$p
+
+
+
+
+
+S=data.frame(C) # data frame de sortie
+r1=R[1]
+r2=R[2]
+p_at=as.double(C$p) ; # P(a et t) directement donné par la matrice de contingence
+na = length(M_a)
+nt = length(M_t)
+nlib=na*nt # nombre de degrés de liberté
+
+Lambda_old=c(rep(0,na+nt))
+Moment=matrix(rep(0, (na+nt+1)*nlib), nrow=na+nt+1,ncol=nlib)
+Moment[1,]=as.double(rep(1,nlib))
+Eta=matrix(rep(0,na+nt+1), nrow=na+nt+1, ncol=1)
+Eta[1]=as.double(1)
+Dd_at=data.frame(D_at)
+Dd_at$p=rep(0,na+nt)
+nR=length(R)
+P_r_anum = as.double(rep(0,nR-1))
+P_r_tnum = as.double(rep(0,nR-1))
+
+for (l in 2:nR) {
+r1=R[l-1]
+r2=R[l]
+k=1
+for (m in D_at$M) {
+  k=k+1
+  v=D_at$V[k-1]
+  p_r_m=proba(m,r_inf=r1,r_sup=r2,D=D_at) # probabilité de ce revenu sachant la modalité m
+
+  # ceci n'a besoin d'être calculé qu'une fois, la matrice moment ne change jamais Cette partie du code doit être mise hors de la boucle
+  # cette partie du code pourrait être rendue plus élégante
+  if (v=="a") {
+    toto = C[C$a == m,]
+    I=as.integer(row.names(toto))
+    p_m=sum(toto$p)
+    }
+  else {
+    toto = C[C$t == m,]
+    I=as.integer(row.names(toto))
+    p_m=sum(toto$p)
+  } # fin si nous ne somme pas dans une modalité qui appartient à l'age, donc nous somme dans une modalité qui appartient à la taille
+Dd_at$p[k-1]=p_r_m*p_m
+Moment[k,I]= rep(1, length(I))
+} # fin de la boucle sur toutes le modalités de toutes les variables
+
+# pour calculer eta, il faut connaite p_r qu peut être calculé selon a, c'est p_r_a ou selon t, c'est p_r_t, ceci est sauvegardé dans le data Frame Ss pour analyse
+
+
+# le codes suivant est dupliqué... Ce n'est pas très propre
+p_r_a_m= Dd_at[Dd_at$V=="a",]$p
+p_r_a=sum(p_r_a_m)
+P_r_anum[l-1]=p_r_a
+Eta[2:(na+1)]=p_r_a_m/p_r_a
+
+p_r_t_m= Dd_at[Dd_at$V=="t",]$p
+p_r_t=sum(p_r_t_m)
+P_r_tnum[l-1]=p_r_t
+Eta[(na+2):(na+nt+1)]=p_r_t_m/p_r_t
+
+# minxent ne gère pas les chutes de rang... Nous pourrions les gérer intelligemment, il faut réfléchir, en attendant
+
+# ceci n'a besoin d'être calculé qu'une fois, la matrice moment ne change jamais
+A=qr(t(Moment))
+I=A$pivot[1:A$rank]
+# fin à retirer de la boucle  
+
+
+ tryCatch (
+        expr = {
+           Sortie=minxent.multiple(q=p_at,G=Moment[I,],eta=c(Eta[I]),lambda=Lambda_old[2:A$rank]) # mieux gérer les lambda
+           Lambda_old=Sortie$Langrangians
+        },
+        error = function(e){
+            message('Erreur sur minxent.multiple : les contraintes sur une variable sont supprimées')
+            I=c(1,5,6,7) # mis en dur à améliorer : on se concentre sur la variable taille
+            Sortie=minxent.multiple(q=p_at,G=Moment[I,],eta=c(Eta[I]),lambda=c(rep(0,3))) # mis en dur à améliorer : on se concentre sur la variable taille
+            Lambda_old=c(rep(0,na+nt))
+            print(e)
+        },
+        warning = function(w){
+            message('Caught an warning!')
+            print(w)
+        },
+        finally = {
+            p_at_r=Sortie$Estimates
+           # message('All done, quitting.')
+        }
+    )    
+
+vv=paste0("R",l)
+S[[vv]]=matrix(p_at_r, nrow=nlib, ncol=1)
+
+} # fin de la boucle sur tous les revenus qui sont renseignés par les déciles
+
+# Préparation des résultats afin de comparer les probabilités du revenu provenant de la taille et celle provenant de l'age....
+P_r_a=c(NA,NA,NA,NA,NA,P_r_anum)
+P_r_t=c(NA,NA,NA,NA,NA,P_r_tnum)
+names(P_r_a)=names(S)
+names(P_r_t)=names(S)
+Ss = rbind(S, P_r_a, P_r_t)
+Ss$pr=c(rep(NA,na*nt),'Proba_r_age','Proba_r_taille')
+print(Ss)  
+
+```
