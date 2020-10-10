@@ -352,7 +352,7 @@ lambda 	initial points for langrangian multipliers.
 
 *Erreur numérique sur minxent : Sur 10% des optimisations, nous avons une erreur numérique dans l'utilisation de minxent.multiple.  En première analyse, je pense que cette erreur provient de l'incohérence entre p_r_a et p_r_t. Donc, en cas d'erreur numérique, il n'est choisé de coller qu'aux déciles de la variable taille car ce sont les déciles qui apportent, a priori, la meilleur information puisque le revenu est fortement corrélé avec la taille... Ceci se discute*
 ```{r}
-library(minxent)
+library('minxent')
 S=data.frame(C) # data frame de sortie
 r1=R[1]
 r2=R[2]
@@ -524,10 +524,10 @@ et
 
 $$ \sum_{i} P(a_i \text{ et } t_j \text{ et } r) = P(r | a_i) P(a_i)$$
 
-```{r}
+```{r nouvelle-methodo}
 
 # Nouvelle méthodologie
-library(minxent)
+
 
 # construction des contraintes ; 
 # les probabilités sont classés dans l'ordre suivant
@@ -619,6 +619,10 @@ A=qr(t(Mom))
 I=A$pivot[1:A$rank]
 
 p_init=rep(as.double(1/n_deg), n_deg)
-Sortie=minxent.multiple(q=p_init,G=Mom[I,],eta=Eta[I],lambda=rep(0, length(I)-1)) 
+Sortie=minxent.multiple(q=p_init,G=Mom[I,],eta=Eta[I],lambda=rep(0, length(I)-1))  # Quitting from lines 528-624 (methodologie_revenue_menage.Rmd) 
+#Error in if (any(wt < 0) || (s <- sum(wt)) == 0) stop("weights must be non-negative and not all zero") : 
+#  missing value where TRUE/FALSE needed
+#Calls: <Anonymous> ... withVisible -> eval -> eval -> minxent.multiple -> cov.wt
+#Execution halted
 
 ```
