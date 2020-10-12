@@ -181,7 +181,9 @@ Les déciles correspondants à chaque modalité de chacune des variables qualita
 ```{r}
 
 # construction des déciles
-Deciles=(1:9)/10
+nDec=4 # nombre de décile 4 = 0, 25% 50 % 100 % 10 = 0 10% 20% 30% 40% 50% 60% 70% 80% 90% 100%
+Deciles=seq(from=0, to=1, length.out = (nDec+1))
+pDec=Decile[1]-Decile[0]
 
 # ce code est utilisé autant de fois qu'il y a des variables qualitatives, c'est la raison pour laquelle il est transformé en fonction
 TAbleau_deciles=function(v,M,P=Pop,D=Deciles,rmini=rmin, rmaxi=rmax) # entree  variable qui est un caractère donnant le nom de la variable qualitative, vecteurs des modalités de la variable, population qui est un data frame décrit précedemment,Decile, rmin revenu minimal, rmax, revenu maximal
@@ -204,7 +206,7 @@ TAbleau_deciles=function(v,M,P=Pop,D=Deciles,rmini=rmin, rmaxi=rmax) # entree  v
 
   Tab=data.frame(M)
   Tab$d0= as.integer(rmini)
-  for (k in 1:length(D)) {
+  for (k in 2:length(D)) {
     varname=paste0("d", as.character(100*D[k]))
     Tab[[varname]]=Da[,k]
   }
@@ -323,8 +325,7 @@ R=Rw
 ```
 Construction de la fonction proba qui donne la probabilité de l'intervalle d'un revenu connaissant sa modalité
 ```{r}
-proba=function(m,r_inf=rmin,r_sup=rmax,D=D_at){ #
-  p=(0:10)/10
+proba=function(m,r_inf=rmin,r_sup=rmax,D=D_at,p=Deciles){ #
   nd =dim(D)[2] # nombre de colonnnes
   D_r=as.double(D[D[,1]==m,names(D)!="M" & names(D) != "V"])#distribution revenu
   p_inf=approx(D_r,p, xout=r_inf, method="linear", ties="ordered")$y
@@ -514,115 +515,3 @@ Ce data frame fournit pour les 12 modalités croisées la proportion de la modal
 
 **La moyenne est bien prédite, l'écart type est surévalué mais dans des proportions acceptables.... A discuter**
 
-# Une autre technique
-
-$$ Min \; -\sum_{i,j} P( a_i \text{ et } t_j  \text{ et }  r) \ln(P( a_i \text{ et } t_j  \text{ et }  r)) $$
-sous les contraintes
-
-$$ \sum_{r} P( a_i \text{ et } t_j  \text{ et }  r) = P( a_i \text{ et } t_j) $$
-et
-
-$$ \sum_{i} P(a_i \text{ et } t_j \text{ et } r) = P(r | a_i) P(a_i)$$
-
-```{r nouvelle-methodo}
-
-# Nouvelle méthodologie
-
-
-# construction des contraintes ; 
-# les probabilités sont classés dans l'ordre suivant
-# a1 b1 r1
-# a2 b1 r1
-# a1 b2 r1
-# a2 b2 r1
-# a1 b1 r2
-# a2 b1 r2
-# etc.
-
-# somme_sur_r P(ai et ti et r) = P(ai et tj)
-# construction des etas
-C[C$a==M_a[1] & C$t==M_t[2],]$p
-N_mod=c(length(M_a), length(M_t), length(R)-1)  # vecteur du nombre  de modalité-
-n_at= N_mod[1]*N_mod[2]                         # nombre  de modalités qualitatives
-n_deg=N_mod[1]*N_mod[2]*N_mod[3];               # nombre de degrés de liberté 
-
-# construction de la matrice des moments sur les modalités
-Mom_mod=matrix(rep(0, n_at*n_deg), nrow=n_at,ncol=n_deg)
-Eta_mod=matrix(rep(0,n_at), nrow=n_at, ncol=1)
-indice=matrix(rep(0,), nrow=1,ncol=N_mod[3])
-for( k in 1:N_mod[3]){
-  indice[k]=1+(k-1)*n_at
-}
-
-for( j in 1:N_mod[2]){
-  for(i in 1:N_mod[1]){
-    k=i+(j-1)*N_mod[1]
-    Mom_mod[k,indice+(k-1)]=rep(1,N_mod[3])
-    Eta_mod[k]=C[C$a==M_a[i] & C$t==M_t[j],]$p
-  }
-}
-
-# construction de la matrice des moments sur les revenus
-# POV le 5 octobre : il reste à calculer Eta_rev en tenant compte de P(ai) à partir du tableau de contingence
-CAlc_lig_rev<- function(modalite,  rmin, rmax ){
-ligne=matrix(rep(0, n_deg), nrow=1,ncol=n_deg)
-for( k in 1:N_mod[3]){
-for( j in 1:N_mod[2]){
-for( i in 1:N_mod[1]){
-l=i+(j-1)*N_mod[1]+(k-1)*N_mod[2]*N_mod[1]
-if(( (M_a[i]%in% modalite) | (M_t[j] %in% modalite) ) & ( (R[k]>=rmin) & (R[k]<=rmax) )){
-  ligne[l]=1
-  }
-  else {
-  }
-} # fin pour k
-} # fin pour j
-} # fin pour i 
-return(ligne)
-} # fin function CAlc_lig_rev
-
-n_cont_rev=10*(N_mod[1]+N_mod[2])# POV ; le nombre de décile est en dur !! A améliorer !
-Eta_rev=matrix(rep(0.1, n_cont_rev), nrow=n_cont_rev, ncol=1) 
-l=1;
-for(i in 1:nrow(D_at)){
-  modalite=D_at$M[i]
-  p_modalite=sum(C[( (C$a %in% modalite) | (C$t %in% modalite) ),]$p)
- for( k in 1:10 ){
-  rmin=D_at[1+k]
-  rmax=D_at[1+k+1]
-  if( (i==1) & (k==1) ){
-  Mom_rev=CAlc_lig_rev(modalite, rmin, rmax)
- }else{
-  Mom_rev=rbind(Mom_rev,CAlc_lig_rev(modalite, rmin, rmax))
- }
- Eta_rev[l]=Eta_rev[l]*p_modalite
- l=l+1
-} # fin pour k
-} # fin pour i
-
-
-
-
-# test sans prendre en compte les contraintes sur le revenu
-Mom = rbind(matrix(rep(1,n_deg),nrow=1,ncol=n_deg), Mom_mod)
-Eta = rbind(1,Eta_mod)
-
-# test en ne prenant que les contraintes sur le revenu
-Mom = rbind(matrix(rep(1,n_deg),nrow=1,ncol=n_deg), Mom_rev)
-Eta = rbind(1,Eta_rev)
-
-# en prenant toutes les contraintes
-Mom = rbind(matrix(rep(1,n_deg),nrow=1,ncol=n_deg), Mom_mod, Mom_rev)
-Eta = rbind(1,Eta_mod, Eta_rev)
-
-A=qr(t(Mom))
-I=A$pivot[1:A$rank]
-
-p_init=rep(as.double(1/n_deg), n_deg)
-Sortie=minxent.multiple(q=p_init,G=Mom[I,],eta=Eta[I],lambda=rep(0, length(I)-1))  # Quitting from lines 528-624 (methodologie_revenue_menage.Rmd) 
-#Error in if (any(wt < 0) || (s <- sum(wt)) == 0) stop("weights must be non-negative and not all zero") : 
-#  missing value where TRUE/FALSE needed
-#Calls: <Anonymous> ... withVisible -> eval -> eval -> minxent.multiple -> cov.wt
-#Execution halted
-
-```
