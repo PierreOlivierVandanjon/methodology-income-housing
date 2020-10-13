@@ -6,7 +6,7 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE,warning=FALSE)
 ```
 
 # Introduction
@@ -183,7 +183,7 @@ Les déciles correspondants à chaque modalité de chacune des variables qualita
 # construction des déciles
 nDec=4 # nombre de décile 4 = 0, 25% 50 % 100 % 10 = 0 10% 20% 30% 40% 50% 60% 70% 80% 90% 100%
 Deciles=seq(from=0, to=1, length.out = (nDec+1))
-pDec=Decile[1]-Decile[0]
+pDec=Deciles[2]-Deciles[1]
 
 # ce code est utilisé autant de fois qu'il y a des variables qualitatives, c'est la raison pour laquelle il est transformé en fonction
 TAbleau_deciles=function(v,M,P=Pop,D=Deciles,rmini=rmin, rmaxi=rmax) # entree  variable qui est un caractère donnant le nom de la variable qualitative, vecteurs des modalités de la variable, population qui est un data frame décrit précedemment,Decile, rmin revenu minimal, rmax, revenu maximal
@@ -332,7 +332,7 @@ for( k in 1:N_mod[3]){
 for( j in 1:N_mod[2]){
 for( i in 1:N_mod[1]){
 l=i+(j-1)*N_mod[1]+(k-1)*N_mod[2]*N_mod[1]
-if(( (M_a[i]%in% modalite) | (M_t[j] %in% modalite) ) & ( (R[k]>=rmin) & (R[k]<=rmax) )){
+if(( (as.character(M_a[i]) == as.character(modalite)) | (as.character(M_t[j]) == as.character(modalite)) ) & ( (R[k]>=rmin) & (R[k]<=rmax) )){
   ligne[l]=1
   }
   else {
@@ -343,7 +343,7 @@ if(( (M_a[i]%in% modalite) | (M_t[j] %in% modalite) ) & ( (R[k]>=rmin) & (R[k]<=
 return(ligne)
 } # fin function CAlc_lig_rev
 
-n_cont_rev=nDec*(N_mod[1]+N_mod[2])# POV ; le nombre de décile est en dur !! A améliorer !
+n_cont_rev=nDec*(N_mod[1]+N_mod[2])
 Eta_rev=matrix(rep(pDec, n_cont_rev), nrow=n_cont_rev, ncol=1) 
 l=1;
 for(i in 1:nrow(D_at)){
@@ -380,15 +380,52 @@ Eta = rbind(1,Eta_mod, Eta_rev)
 A=qr(t(Mom))
 I=A$pivot[1:A$rank]
 
+
+# vérification que le système est compatible
+library(boot) # POV 14 septembre pour avoir la fonction simplexe
+ M=dim(Mom[I,])
+    mc=M[2] # nombre de colonne, c'est aussi le nombre de variable
+    ml=M[1] 
+    Coef_objectif=c(rep(0,mc), rep(1,ml)) # fonction objectif
+    Id=diag(rep(1,ml))
+    M_equation= cbind(Mom[I,], Id)
+    result=simplex(
+      a=Coef_objectif,
+      A3=M_equation, #contraines
+      b3=Eta[I])
+    #if (abs(result$value)<tol_compatibilite) { break}
+#POV test du 13 octobre 2020  Mom[I,]%*%result$soln[1:264]-Eta[I]
+
+tol_compatibilite <- 1e-8 ; # tolérance sur la compatibilité du système (vérifier )
+
+if(abs(result$value)>tol_compatibilite){
+      print(" système incompatible")
+      indice_contrainte_violee=which.max(result$soln[seq(mc+1,mc+ml)]) #voir la contrainte qui déconne le plus (voir dans les 16 dernières, voir ce qui déconne le plus)
+     break } else{
+  print("système compatible")}
+
+
+    
+    
 p_init=rep(as.double(1/n_deg), n_deg)
 
+# voir article2004Entropy-PolmehtPaperArchive.pdf 
+# Entropy optimization  : computer implementation of  the maxent and mixent principles
+# Rogerio Silva de Mattos
+# Alvaro Veigo
+
+# Nous sommes faces à un problème numérique
+# Le hessien atteint des conditionnements égaux à 10^91
+# même si on limite le hessien, les exponentielles explosent !!!
+# Une solution est d'utiliser la solution compatible, calculer des lambda et partir de ces lambda ?
+# c'est, peut-être, indiqué dans l'article...A vérifier
 
 pov_minxent.multiple<-function (q, G, eta,lambda) 
 {
 fk<-function (lambda, q, G, eta) 
 {
      lambda0<-log(sum(q*exp(-lambda%*%G[-1,])))
-     (q * exp(-lambda0)*exp(-lambda %*% G[-1,]))%*% t(G) - eta
+     (q * exp(-lambda0)*exp(-lambda %*% G[-1,]))%*% t(G) - eta # POV : voir article maxent
 }
 
     lambda0 <- log(sum(q * exp(-lambda * G[-1, ])))
@@ -405,7 +442,7 @@ fk<-function (lambda, q, G, eta)
         W <- hess.ent[-1, -1]
         Go <- solve(W)
         lambda <- lambda_old + f_old[, -1] %*% Go
-        
+        #browser() # POV pour faire un break dans le code
         if (max(abs(lambda - lambda_old)) < 1e-08) 
             break
     }
