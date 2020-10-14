@@ -1,5 +1,5 @@
 ---
-title: "Méthodologie pour attribuer un revenu aux ménages"
+title: "Deuxième Méthodologie pour attribuer un revenu aux ménages"
 output:
   html_document: default
   pdf_document: default
@@ -311,9 +311,9 @@ n_deg=N_mod[1]*N_mod[2]*N_mod[3];               # nombre de degrés de liberté
 # construction de la matrice des moments sur les modalités
 Mom_mod=matrix(rep(0, n_at*n_deg), nrow=n_at,ncol=n_deg)
 Eta_mod=matrix(rep(0,n_at), nrow=n_at, ncol=1)
-indice=matrix(rep(0,), nrow=1,ncol=N_mod[3])
+indice=matrix(rep(0,N_mod[3]), nrow=1,ncol=N_mod[3])
 for( k in 1:N_mod[3]){
-  indice[k]=1+(k-1)*n_at
+  indice[k]=as.double(1+(k-1)*n_at)
 }
 
 for( j in 1:N_mod[2]){
@@ -333,7 +333,7 @@ for( j in 1:N_mod[2]){
 for( i in 1:N_mod[1]){
 l=i+(j-1)*N_mod[1]+(k-1)*N_mod[2]*N_mod[1]
 if(( (as.character(M_a[i]) == as.character(modalite)) | (as.character(M_t[j]) == as.character(modalite)) ) & ( (R[k]>=rmin) & (R[k]<=rmax) )){
-  ligne[l]=1
+  ligne[l]=as.double(1) # Il faut qu'il le considère comme double
   }
   else {
   }
@@ -350,12 +350,12 @@ for(i in 1:nrow(D_at)){
   modalite=D_at$M[i]
   p_modalite=sum(C[( (as.character(C$a) == modalite) | (as.character(C$t) == modalite) ),]$p)
  for( k in 1:nDec ){
-  rmin=D_at[1+k]
-  rmax=D_at[1+k+1]
+  r1=D_at[i,1+k]
+  r2=D_at[i,1+k+1]
   if( (i==1) & (k==1) ){
-  Mom_rev=CAlc_lig_rev(modalite, rmin, rmax)
+  Mom_rev=CAlc_lig_rev(modalite, r1, r2)
  }else{
-  Mom_rev=rbind(Mom_rev,CAlc_lig_rev(modalite, rmin, rmax))
+  Mom_rev=rbind(Mom_rev,CAlc_lig_rev(modalite, r1, r2))
  }
  Eta_rev[l]=Eta_rev[l]*p_modalite
  l=l+1
@@ -400,8 +400,8 @@ tol_compatibilite <- 1e-8 ; # tolérance sur la compatibilité du système (vér
 
 if(abs(result$value)>tol_compatibilite){
       print(" système incompatible")
-      indice_contrainte_violee=which.max(result$soln[seq(mc+1,mc+ml)]) #voir la contrainte qui déconne le plus (voir dans les 16 dernières, voir ce qui déconne le plus)
-     break } else{
+      indice_contrainte_violee=which.max(result$soln[seq(mc+1,mc+ml)]) #voir la contrainte qui déconne le plus (voir dans les 16 dernières, voir ce qui déconne le plus) break ?
+     } else{
   print("système compatible")}
 
 
@@ -427,7 +427,7 @@ fk<-function (lambda, q, G, eta)
      lambda0<-log(sum(q*exp(-lambda%*%G[-1,])))
      (q * exp(-lambda0)*exp(-lambda %*% G[-1,]))%*% t(G) - eta # POV : voir article maxent
 }
-
+condmax=1e6; # POV pourquoi pas erreur
     lambda0 <- log(sum(q * exp(-lambda * G[-1, ])))
     repeat {
         lambda_old <- lambda
@@ -437,12 +437,21 @@ fk<-function (lambda, q, G, eta)
             ])) %*% t(G)
         pg <- c(q * exp(-lambda0) * exp(-lambda_old %*% G[-1, 
             ]))
-        cov.ent <- cov.wt(t(G), wt = pg, method = "ML", cor = FALSE)
+        #print(" regarder cbind(G%*%pg, eta)")
+        #browser() # POV pour faire un break dans le code
+        cov.ent <- cov.wt(t(G), wt = pg, method = "ML", cor = FALSE) # une erreur a lieu ici car pg est NaN
         hess.ent <- cov.ent$cov
         W <- hess.ent[-1, -1]
-        Go <- solve(W)
+        condW=kappa(W)
+        if(condW<condmax){Go <- solve(W)} # POV : traitement de la chute de rang du hessien
+        else{
+          SVDW=svd(W)
+          V_sing_non_nulle = SVDW$d[SVDW$d[1]/SVDW$d < condmax]
+          
+          Go=SVDW$v%*%diag(c(1/V_sing_non_nulle, rep(0,length(SVDW$d)-length(V_sing_non_nulle))))%*%t(SVDW$u)
+        }
         lambda <- lambda_old + f_old[, -1] %*% Go
-        #browser() # POV pour faire un break dans le code
+        
         if (max(abs(lambda - lambda_old)) < 1e-08) 
             break
     }
@@ -455,17 +464,57 @@ fk<-function (lambda, q, G, eta)
 
 
 
-Sortie=pov_minxent.multiple(q=p_init,G=Mom[I,],eta=Eta[I],lambda=rep(0, length(I)-1))  
+Sortie=pov_minxent.multiple(q=p_init,G=Mom[I,],eta=Eta[I],lambda=c(rep(0, length(I)-1)))  
+p_out=matrix(Sortie$Estimates,nrow=length(Sortie$Estimates),ncol=1)
+p_out=matrix(result$soln[1:n_deg],nrow=n_deg,ncol=1) # POV VERRUE comme le système est incompatible !
 
-
-# Quitting from lines 528-624 (methodologie_revenue_menage.Rmd) 
-#Error in if (any(wt < 0) || (s <- sum(wt)) == 0) stop("weights must be non-negative and not all zero") : 
-#  missing value where TRUE/FALSE needed
-#Calls: <Anonymous> ... withVisible -> eval -> eval -> minxent.multiple -> cov.wt
-#Execution halted
 
 ```
 
+```{r présentation des résultats}
+Res=data.frame(C)
+nR=length(R)
+R1=matrix(R[1:nR-1], nrow=nR-1, ncol=1)
+R2=matrix(R[2:nR], nrow=nR-1, ncol=1)
+
+indice=matrix(rep(0,N_mod[3]), ncol=1,nrow=N_mod[3])
+for( k in 1:N_mod[3]){
+  indice[k]=as.double(1+(k-1)*n_at)
+}
+
+
+for (k in 1:n_at) {
+
+Data=Pop[Pop$a==Res$a[k] & Pop$t==Res$t[k],]$r;
+
+  if (length(Data)>0) {
+    Res$mPop[k]=as.double(mean(Data))
+    if (length(Data)>1) {
+      Res$stdPop[k]=as.double(sd(Data))
+    } else  # fin si (length(Data)>1)
+      { # cas dégénéré ou il n y a qu'une seule observation expérimentale
+      Res$stdPop[k]=NA
+    } # fin sinon
+  } else { # fin si (length(Data)>0)
+    # cas dégénéré ou il n y a pas d'observation expérimentale
+    Res$mPop[k]=NA
+    Res$stdPop[k]=NA
+  } # fin sinon
+
+
+  
+  p_a_t_r = p_out[indice+(k-1)];
+  p_R_a_t = p_a_t_r/sum(p_a_t_r) # POV clea se discute !
+  Res$mPredit[k]= sum( ((R1+R2)/2)*p_R_a_t )
+  varPredit=sum(   (((R2^3-R1^3)/3) / (R2-R1)) *p_R_a_t ) - Res$mPredit[k]^2
+  Res$stdPredit[k]=sqrt(varPredit)
+  #browser()
+
+}
+
+print(Res)
+
+```
 
 
 
