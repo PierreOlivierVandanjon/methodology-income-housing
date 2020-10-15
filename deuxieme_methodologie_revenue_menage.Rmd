@@ -38,7 +38,7 @@ Il y a 3 modalités pour l'age de la personne de référence et 4 modalités pou
 M_a=c('moins_de_30ans', '30-60ans','plus_de_60ans') # Modalite age
 M_t=c('1', '2','3','4_et_plus') # Modalite taille
 C=expand.grid(a=M_a,t=M_t,p=0,r=0,std=0) # tableau de contingence
-n=100 # N doit être divisible par 100
+n=500 # N doit être divisible par 100
 rmin=5000
 rmax=10*rmin
 print(C)
@@ -181,7 +181,7 @@ Les déciles correspondants à chaque modalité de chacune des variables qualita
 ```{r}
 
 # construction des déciles
-nDec=4 # nombre de décile 4 = 0, 25% 50 % 100 % 10 = 0 10% 20% 30% 40% 50% 60% 70% 80% 90% 100%
+nDec=10 # nombre de décile 2 = 0, 50%, 100%,  4 = 0, 25% 50 % 75% 100 % 10 = 0 10% 20% 30% 40% 50% 60% 70% 80% 90% 100%
 Deciles=seq(from=0, to=1, length.out = (nDec+1))
 pDec=Deciles[2]-Deciles[1]
 
@@ -326,13 +326,16 @@ for( j in 1:N_mod[2]){
 
 # construction de la matrice des moments sur les revenus
 
-CAlc_lig_rev<- function(modalite,  rmin, rmax ){
+CAlc_lig_rev<- function(modalite,  r1, r2 ){
 ligne=matrix(rep(0, n_deg), nrow=1,ncol=n_deg)
+nR=length(R)
+R1=matrix(R[1:nR-1], nrow=nR-1, ncol=1)
+R2=matrix(R[2:nR], nrow=nR-1, ncol=1)
 for( k in 1:N_mod[3]){
 for( j in 1:N_mod[2]){
 for( i in 1:N_mod[1]){
 l=i+(j-1)*N_mod[1]+(k-1)*N_mod[2]*N_mod[1]
-if(( (as.character(M_a[i]) == as.character(modalite)) | (as.character(M_t[j]) == as.character(modalite)) ) & ( (R[k]>=rmin) & (R[k]<=rmax) )){
+if(( (as.character(M_a[i]) == as.character(modalite)) | (as.character(M_t[j]) == as.character(modalite)) ) & ( (R1[k]>=r1) & (R2[k]<=r2) )){
   ligne[l]=as.double(1) # Il faut qu'il le considère comme double
   }
   else {
@@ -427,7 +430,8 @@ fk<-function (lambda, q, G, eta)
      lambda0<-log(sum(q*exp(-lambda%*%G[-1,])))
      (q * exp(-lambda0)*exp(-lambda %*% G[-1,]))%*% t(G) - eta # POV : voir article maxent
 }
-condmax=1e6; # POV pourquoi pas erreur
+condmax=10; # POV pourquoi pas erreur À 200 et à 50 quand la population augmente, algorithme pas étudié pour les grandes degrés de liberté, plus le conditionnement est important, mieux on colle aux marginaux
+
     lambda0 <- log(sum(q * exp(-lambda * G[-1, ])))
     repeat {
         lambda_old <- lambda
@@ -466,11 +470,32 @@ condmax=1e6; # POV pourquoi pas erreur
 
 Sortie=pov_minxent.multiple(q=p_init,G=Mom[I,],eta=Eta[I],lambda=c(rep(0, length(I)-1)))  
 p_out=matrix(Sortie$Estimates,nrow=length(Sortie$Estimates),ncol=1)
-p_out=matrix(result$soln[1:n_deg],nrow=n_deg,ncol=1) # POV VERRUE comme le système est incompatible !
-
+##################################
+#p_out=matrix(result$soln[1:n_deg],nrow=n_deg,ncol=1) # POV VERRUE comme le système est incompatible !
+#################################
 
 ```
+```{r optimisation sqp}
+# le coup du log(0) n'est pas bien traité
+library("nloptr")
+p_adm=matrix(result$soln[1:n_deg],nrow=n_deg,ncol=1)
+lb=rep(0, n_deg)
+ub=rep(1, n_deg)
+log_pov<-function(x){#a=matrix(rep(0,n_deg),nrow=nrow(x),ncol=ncol(x))
+                                  a=rep(0,n_deg)  
+                                  a[x==0]=-1e-10;
+                                  a[x!=0]=log(x[x>0])
+                                  a}
+ENtropie<-function(x){-matrix(x, ncol=n_deg, nrow =1)%*%log_pov(matrix(x, nrow=n_deg,ncol=1))}
+GEntropie<-function(x){-matrix(c(rep(1,n_deg)), ncol=n_deg, nrow=1) -matrix(log_pov(x), ncol=n_deg, nrow=1)}
+EGalite<-function(x){Mom%*%matrix(x,nrow=n_deg, ncol=1)}
+GEgalite<-function(x){Mom}
+  
+  sqp=nloptr(x0=p_adm, eval_f=ENtropie, eval_grad_f = GEntropie, lb = lb, ub = ub,
+  eval_g_ineq = NULL, eval_jac_g_ineq = NULL, eval_g_eq = EGalite, eval_jac_g_eq = GEgalite, opts=list("algorithm"= "NLOPT_LD_SLSQP", "xtol_rel"=1.0e-2))
+ p_out=p_out=sqp$solution
 
+```
 ```{r présentation des résultats}
 Res=data.frame(C)
 nR=length(R)
@@ -515,6 +540,7 @@ Data=Pop[Pop$a==Res$a[k] & Pop$t==Res$t[k],]$r;
 print(Res)
 
 ```
+
 
 
 
