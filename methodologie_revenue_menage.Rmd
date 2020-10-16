@@ -1,0 +1,746 @@
+---
+title: "Comparaison de deux Méthodologies pour attribuer un revenu aux ménages"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,warning=FALSE)
+```
+
+# Introduction
+
+Ce document a pour objectif de faire la synthèse de deux méthodes pour l'ajout de la variable revenu à une population synthétique qui ne contient pas cette variable. En revanche, il est connu les déciles de cette variable pour certaines variables qualitatives. Cette méthode est implémentée en R. Elle est donnée sous la forme d'un exemple qui permet de tester différentes méthodologies. Dans la suite, nous présentons le cas d'étude, puis la méthodologie et enfin son application sur le cas étudié.
+
+Règles d'écriture :
+* les noms des scalaires sont en minuscule
+* les noms des objets de dimensions supérieurs commencent par une majuscule
+* les noms des fonctions commencent par deux majuscules
+
+# Le cas d'étude
+Le nombre d'individus de la population n ( n  doit être un multiple de 100) .
+
+Nous générons une population synthétique avec deux variables qualitatives age de la personne de référence et taille du ménage.
+
+Nous construisons un tableau de contingence qui croisent toutes les modalités des deux variables et qui contient pour chaque modalité croisée, sa proportion dans la population, le revenu moyen de cette proportion, l'écart type du revenu. A partir de ce tableau, nous allons générer la population synthétique en utilisant pour chaque modalitée croisée une loi normale tronquée entre le revenu minimum, rmin, et le revenu maximum, rmax. Ensuite, nous construisons les déciles associées à chaque modalité de chaque variable qualitative.
+
+L'objectif de la méthodologie est de retrouver la variable renvenu à partir de la donnée de la population synthétique sans revenu d'une part et les déciles fournies pour chaque modalité.
+
+
+## Tableau de contingence
+
+
+
+Il y a 3 modalités pour l'age de la personne de référence et 4 modalités pour la taille du ménage.
+
+```{r}
+M_a=c('moins_de_30ans', '30-60ans','plus_de_60ans') # Modalite age
+M_t=c('1', '2','3','4_et_plus') # Modalite taille
+C=expand.grid(a=M_a,t=M_t,p=0,r=0,std=0) # tableau de contingence
+n=500 # N doit être divisible par 100
+rmin=5000
+rmax=10*rmin
+print(C)
+```
+
+
+
+
+ Hypothèse : Identité entre la personne de référende fiscale et la personne de référence du recensement
+
+
+## Construction de la population synthétique avec son revenu
+
+nous supposons 20% des ménages dont la personne de référence a entre 0 et 30 ans,
+le revenu des ménages qui sont de taille 1 a une Moyenne de 12 000 et un ecart type de 3 000 avec Rmin et Rmax q.
+Cette propriété de base varie selon la taille des ménage selon les régles suivantes
+
+* 4/10 de taille 1 avec ce revenu
+* 3/10 de talle 2 revenu x 2 + 1 000
+* 2/10 de taille 3 revenu x 2 + 2 000
+* 1/10 de taille 4 revenu x 2 + 3 000
+
+```{r}
+pa1=0.2 # proportion de personnes ayant l'age 1
+ra1=12000
+da1=1000
+stda1=3000
+C[C$a==M_a[1] & C$t==M_t[1],]$p=pa1*4/10
+C[C$a==M_a[1] & C$t==M_t[1],]$r=ra1
+C[C$a==M_a[1] & C$t==M_t[1],]$std=stda1
+C[C$a==M_a[1] & C$t==M_t[2],]$p=pa1*3/10
+C[C$a==M_a[1] & C$t==M_t[2],]$r=2*ra1+da1
+C[C$a==M_a[1] & C$t==M_t[2],]$std=stda1
+C[C$a==M_a[1] & C$t==M_t[3],]$p=pa1*2/10
+C[C$a==M_a[1] & C$t==M_t[3],]$r=2*ra1+2*da1
+C[C$a==M_a[1] & C$t==M_t[3],]$std =stda1
+C[C$a==M_a[1] & C$t==M_t[4],]$p=pa1*1/10
+C[C$a==M_a[1] & C$t==M_t[4],]$r=2*ra1+3*da1
+C[C$a==M_a[1] & C$t==M_t[4],]$std=stda1
+```
+
+
+70% qui ont entre 30 et 60 ans
+revenu de la taille 1 : Moyenne de 15 000 avec un ecart type de 4 000 avec Rmin et Rmax
+* 1/10 de taille 1 avec ce  revenu
+* 2/10 de talle 2 revenu x 2 + 2 000
+* 3/10 de taille 3 revenu x 2 + 4 000
+* 4/10 de taille 4 revenu x 2 + 6 000
+
+```{r}
+pa2=0.7 # proportion de personnes ayant l'age 2
+ra2=15000
+da2=2000
+stda2=4000
+C[C$a==M_a[2] & C$t==M_t[1],]$p=pa2*1/10
+C[C$a==M_a[2] & C$t==M_t[1],]$r=ra2
+C[C$a==M_a[2] & C$t==M_t[1],]$std=stda2
+C[C$a==M_a[2] & C$t==M_t[2],]$p=pa2*2/10
+C[C$a==M_a[2] & C$t==M_t[2],]$r=2*ra2+da2
+C[C$a==M_a[2] & C$t==M_t[2],]$std=stda2
+C[C$a==M_a[2] & C$t==M_t[3],]$p=pa2*3/10
+C[C$a==M_a[2] & C$t==M_t[3],]$r=2*ra2+2*da2
+C[C$a==M_a[2] & C$t==M_t[3],]$std =stda2
+C[C$a==M_a[2] & C$t==M_t[4],]$p=pa2*4/10
+C[C$a==M_a[2] & C$t==M_t[4],]$r=2*ra2+3*da2
+C[C$a==M_a[2] & C$t==M_t[4],]$std=stda2
+```
+
+
+
+et 10% qui sont supérieur à 60 ans.
+Moyenne de 13 000 ecart type de 5 000 avec Rmin et Rmax
+* 4/10 de taille 1 avec ce revenu
+* 4/10 de taille 2 revenu x2 + 1000
+* 1/10 de taille 3 revenu x2 + 2000
+* 1/10 de taille 4 revenu x3 + 3000
+
+```{r}
+pa3=0.1 # proportion de personnes ayant l'age 3
+ra3=13000
+da3=1000
+stda3=5000
+C[C$a==M_a[3] & C$t==M_t[1],]$p=pa3*4/10
+C[C$a==M_a[3] & C$t==M_t[1],]$r=ra3
+C[C$a==M_a[3] & C$t==M_t[1],]$std=stda3
+C[C$a==M_a[3] & C$t==M_t[2],]$p=pa3*4/10
+C[C$a==M_a[3] & C$t==M_t[2],]$r=2*ra3+da3
+C[C$a==M_a[3] & C$t==M_t[2],]$std=stda3
+C[C$a==M_a[3] & C$t==M_t[3],]$p=pa3*1/10
+C[C$a==M_a[3] & C$t==M_t[3],]$r=2*ra3+2*da3
+C[C$a==M_a[3] & C$t==M_t[3],]$std =stda3
+C[C$a==M_a[3] & C$t==M_t[4],]$p=pa3*1/10
+C[C$a==M_a[3] & C$t==M_t[4],]$r=2*ra3+3*da3
+C[C$a==M_a[3] & C$t==M_t[4],]$std=stda3
+ print(C)
+```
+
+A partir du tableau de contingence, C, la population synthétique est construite en utilisant la loi normale tronquée, fonction rtnorm du package msm.
+Chaque individu de la population synthétique comprend un modalité d'age, a,  une modalité de taille, t, un revenu, r, et le revenu qui sera prêdit par notre modèle, rp.
+
+*ATTENTION : le noyau du moteur aléatoire a été mis à 1 afin d'obtenir les mêmes résultats à chaque execution*
+
+
+```{r}
+library("msm")
+set.seed(1)
+Popp=c();
+for (o in M_a) {
+  for (oo in M_t){
+    nn = round(n*C[C$a==o & C$t==oo,]$p,0)
+    rr = C[C$a==o & C$t==oo,]$r
+    stdd=C[C$a==o & C$t==oo,]$std
+    Poppp=cbind(c(rep(o,nn)), c(rep(oo,nn)), c(round(rtnorm(nn, mean=rr, sd=stdd, lower=rmin, upper=rmax),0)), c(rep(0,nn)))
+    Popp=rbind(Popp, Poppp)
+  } # fin for oo
+  } # fin for o
+Pop=data.frame(a=as.factor(Popp[,1]),t=as.factor(Popp[,2]),r=as.integer(Popp[,3]), rp=as.integer(Popp[,4]) )
+print(Pop)
+```
+
+## Construction des déciles
+
+Les déciles correspondants à chaque modalité de chacune des variables qualitatives taille et age sont construits et sont rangés dans deux tableaux, D_a et D_t.
+
+```{r}
+# construction des déciles
+nDec=10 # nombre de décile 2 = 0, 50%, 100%,  4 = 0, 25% 50 % 75% 100 % 10 = 0 10% 20% 30% 40% 50% 60% 70% 80% 90% 100%
+Deciles=seq(from=0, to=1, length.out = (nDec+1))
+pDec=Deciles[2]-Deciles[1]
+# ce code est utilisé autant de fois qu'il y a des variables qualitatives, c'est la raison pour laquelle il est transformé en fonction
+TAbleau_deciles=function(v,M,P=Pop,D=Deciles,rmini=rmin, rmaxi=rmax) # entree  variable qui est un caractère donnant le nom de la variable qualitative, vecteurs des modalités de la variable, population qui est un data frame décrit précedemment,Decile, rmin revenu minimal, rmax, revenu maximal
+ {
+# v="t"
+# M=M_t
+# P=Pop
+# D=Deciles
+# rmini=rmin
+# rmaxi=rmax
+  Da=c()
+  for (o in M) {
+    Data=P[P[[v]]==o,]$r
+    Daa=c(as.integer(round(quantile(Data,D),0)))
+    Da=rbind(Da,Daa)
+  }
+  Tab=data.frame(M)
+  Tab$d0= as.integer(rmini)
+  for (k in 2:length(D)) {
+    varname=paste0("d", as.character(100*D[k]))
+    Tab[[varname]]=Da[,k]
+  }
+  Tab$d100= as.integer(rmaxi)
+  #names(Tab)[names(Tab)=='M']=v; J'ai retiré ceci afin de pouvoir fusionner plus facilement les tableaus dans la suite pour calculer le vecteur R
+  Tab
+} # fin fonction  construit decile
+D_a=TAbleau_deciles(v="a",M=M_a)
+D_t=TAbleau_deciles(v="t",M=M_t)
+print(D_a)
+print(D_t)
+```
+
+
+## Construction d'un vecteur de revenu
+
+Les deux méthodologies calculent une probabilité sachant que le revenu est compris entre les bornes des déciles. Leurs mises en oeuvre nécessitent la création d'un vecteur de revenu.
+Nous allons construire le vecteur des revenus R dont les éléments sont les bornes des intervalles rk. 
+
+Construction du vecteur R
+```{r}
+D_at= rbind(D_a, D_t)
+D_at$V=c(rep("a",length(M_a)),rep("t",length(M_t)) )
+D_atn = D_at[, names(D_at)!="M" & names(D_at)!="d0" & names(D_at)!="d100" & names(D_at) != "V"]
+D_mat=as.matrix(D_atn)
+D_vat=as.vector(D_mat)
+R_unsorted=c(rmin, c(D_vat),rmax)
+Rw=sort(R_unsorted, decreasing = FALSE)
+R=Rw
+# dr=1 # incrément minimal entre deux élément de R
+# nRw=length(Rw)
+# R=Rw[1]
+# k=1
+# for (j in 2:nRw) {
+#   if ( Rw[j] > (R[k]+dr) ){
+#       R=rbind(R,Rw[j])
+#       k=k+1
+#   }
+#   } # fin pour j
+```
+
+Nous construisons une fonction permettant de calculer les probablités du revenu connaissant les déciles en nous basant sur notre hypthèse principale d'approximation linéaire entre les déciles fournis.
+Construction de la fonction proba qui donne la probabilité de l'intervalle d'un revenu connaissant sa modalité
+```{r}
+proba=function(m,r_inf=rmin,r_sup=rmax,D=D_at,p=Deciles){ #
+  nd =dim(D)[2] # nombre de colonnnes
+  D_r=as.double(D[D[,1]==m,names(D)!="M" & names(D) != "V"])#distribution revenu
+  p_inf=approx(D_r,p, xout=r_inf, method="linear", ties="ordered")$y
+  p_sup=approx(D_r,p, xout=r_sup, method="linear", ties="ordered")$y
+  as.double(p_sup-p_inf)
+}
+```
+# Mise en oeuvre de la méthodologie heuristique par minimisation de l'entropie croisée
+
+La probabilité des modalités croisées est directement donnée dans le tableau d'occurence.
+
+*Amélioration : dans le code, il est supposé que toutes les modalités de toutes les variables ont des noms différents, ceci est à durcir.*
+# Méthodologie
+
+Note : dans la suite
+* r signifie : le revenu est égal à r;
+* a signie : l'age de la personne de référence du ménage est égale à la modalité a
+* t signifie la taille du ménage est égale à la modalité t.
+
+Nous souhaitons connaitre la loi du revenu sachant que la taille du ménage est t et l'age de la personne du ménage est a. Ce qui s'écrit mathématiquement :
+
+$$ P(r \; | \; (\text{a et t})) $$
+Remarque : nous utilisons la notation P pour probabilité alors que c'est une densité de probabilité qui est plutôt noté f. Dans la suite, cette fonction de densité sera discrétisé, la notation P sera, alors, la notation naturelle.
+
+
+*L'hypothèse principale est que nous supposons une approximation linéaire entre deux déciles. Concrêtement, si le revenu correspondant au decile à 20 % est de 10 000 euros et que le revenu correspondant au décile à 30 % est 15 000 euros, nous supposerons que les revenus obeissent à une loi uniforme enter 10 000 euros et 15 000 euros dont l'intégrale entre ces deux bornes vaut 0.1. Ceci est une hypothèse qui ne correspond pas à la façon dont nous avons construit les revenus. Les revenus ont été construits à partir d'une loi gaussienne tronquée. Nous nous situons dans un cas plutôt défavorable.*
+
+En appliquant le théorème de Bayes, nous obtenons
+
+$$P(r \; | \; (\text{a et t}))=P((\text{a et t}) \; | \; r) \frac{P(r)}{P(\text{a et t})}$$
+Une interprétation de cette formule est la suivante. Si le revenu est indépendant de la taille du ménage et de l'age du ménage, la loi de probabilité pour les modalités croisées correspond à la loi de probabilité générale des revenus. Sinon, cette loi de probabilité est modulée par le rapport entre la probabilié des modalités croisées connaissant r et la probabilité des modalités croisées. Nous verrons par la suite que la probabilité des modalités croisées connaissant r est, elle même, calculée à partir des probabilités des modalités croisés modifiées pour tenir compte des informations fournies par les déciles.
+
+Une règle de trois sur la population synthétique permet  de connnaitre
+$$P(\text{a et t})$$
+La connaissance des déciles sur le revenu et la proportion de chacune des modalité permet de connaitre P(r)
+$$P(r) = \sum_i P(r| a_i)P(a_i)$$
+On peut aussi faire le calcul avec les modalités sur la taille :
+
+$$P(r) = \sum_j P(r| t_j)P(t_j)$$
+*Il est intéressant de comparer ces deux lois de probabilités. C'est un sujet à discuter.*
+
+Ensuite, il faut estimer
+$$P((\text{a et t}) \; | \; r)$$
+Pour cela, nous allons utiliser la méthodologie de l'entropie croisée : nous allons considérer que cette probabilité doit être la plus proche de P(a et t)
+tout en respectant les lois de probabilités issus des  déciles P(r sachant a) et P(r sachant t) en faisant une interpolation linéaire entre les déciles suivant l'hypothèse principale. Ce qui s'écrit
+
+
+$$ Min \; -\sum_{i,j} P( a_i \text{ et } t_j) \; | \; r) \ln(P(a_i \text{ et } t_j)) $$
+Sous les contraintes
+$$\sum_{j} P( a_i \text{ et } t_j \; | \; r) = P(a_i \; | \; r) = P(r \; | \; a_i)\frac{P(a_i)}{P(r)}  $$
+et
+$$  \sum_i P( a_i \text{ et } t_j \; | \; r) = P(t_j \; | \; r)= P(r \; | \; t_j)\frac{P(t_j)}{P(r)} $$
+
+Dans notre cas d'étude, il y a 12 degrés de liberté et 7 contraintes.
+
+
+Cependant, nous n'allons pas résoudre ce problème d'optimisation pour tous les revenus r. Nous construisons un vecteur de revenu, R, qui concatène tous les revenus correspondants à tous les déciles. Ce vecteur de revenu est trié depuis rmin jusqu'à rmax qui correspond à une discrétisation de la variable revenue.
+
+*Cette discrétisation est issue de la remarque suivante : entre chaque élément successif du vecteur revenu, il n'y a pas d'information supplémentaire que celle contenu dans les deux bornes du revenu.*
+
+
+Comme il y a 7 modalités, cela correspond à 64 optimisation (7x9-1 + les deux intervalles avec rmin et rmax) dans le cas où le nombre de décile ndec=10.
+
+*Les optimisations sont proches les unes des autres, nous pourrions, dans un second temps, améliorer le temps de calcul... A discuter*
+
+Une fois cette optimisation efffectuée, nous connaitrons
+
+$$P(rk \; | \;  a_i \text{ et } t_j)  = P(   a_i \text{ et } t_j  \; | \; rk )\frac{P(r_k)}{P( a_i \text{ et } t_j )}  \text{ avec } rk = [R(k-1), R(k)] \; \forall \; k,i,j$$
+
+Pour affecter un revenu à un individu, ses modalités croisés, ai et tj, sont analysées. La formule précédente fournit la loi pour tirer un revenu au hasard : nous tirons alors au hasard un intervalle, rk, selon la probabilité P(rk sachant ai et tj) puis nous tirerons  au hasard au sein de cet intervalle selon la loi uniforme.
+
+
+# Application
+
+La probabilité des modalités croisées est directement donnée dans le tableau d'occurence.
+
+*Amélioration : dans le code, il est supposé que toutes les modalités de toutes les variables ont des noms différents, ceci est à durcir.*
+
+
+```
+Construction de la fonction proba qui donne la probabilité de l'intervalle d'un revenu connaissant sa modalité
+```{r}
+proba=function(m,r_inf=rmin,r_sup=rmax,D=D_at,p=Deciles){ #
+  nd =dim(D)[2] # nombre de colonnnes
+  D_r=as.double(D[D[,1]==m,names(D)!="M" & names(D) != "V"])#distribution revenu
+  p_inf=approx(D_r,p, xout=r_inf, method="linear", ties="ordered")$y
+  p_sup=approx(D_r,p, xout=r_sup, method="linear", ties="ordered")$y
+  as.double(p_sup-p_inf)
+}
+
+```
+
+## Estimation de la loi de probabilité  par minisation de l'entropie croisée
+
+Utilisation de minxent(q, G, eta, lambda)
+
+Arguments
+q 	a priori distribution.
+G 	matrix of moment vector functions.
+eta 	vector of moment constraints.
+lambda 	initial points for langrangian multipliers.
+
+** Il faut vérifier que ce relativement vieux code minimise bien l'entropie croisée et pas la divergence de divergence de kullback leibler, vérifier les deux approches... A approfondir**
+
+*Il y a une grosse différence entre p_r_a et p_r_t : c'est à dire les probablité de R calculé à partir de la taille du ménage et celle calculée à partir de l'age de la personne de référence... Ceci est à discuter, le data frame Ss permet d'alimenter cette discussion*
+
+*Erreur numérique sur minxent : Sur 10% des optimisations, nous avons une erreur numérique dans l'utilisation de minxent.multiple.  En première analyse, je pense que cette erreur provient de l'incohérence entre p_r_a et p_r_t. Donc, en cas d'erreur numérique, il n'est choisé de coller qu'aux déciles de la variable taille car ce sont les déciles qui apportent, a priori, la meilleur information puisque le revenu est fortement corrélé avec la taille... Ceci se discute*
+```{r}
+library('minxent')
+S=data.frame(C) # data frame de sortie
+r1=R[1]
+r2=R[2]
+p_at=as.double(C$p) ; # P(a et t) directement donné par la matrice de contingence
+na = length(M_a)
+nt = length(M_t)
+nlib=na*nt # nombre de degrés de liberté
+
+Lambda_old=c(rep(0,na+nt))
+Moment=matrix(rep(0, (na+nt+1)*nlib), nrow=na+nt+1,ncol=nlib)
+Moment[1,]=as.double(rep(1,nlib))
+Eta=matrix(rep(0,na+nt+1), nrow=na+nt+1, ncol=1)
+Eta[1]=as.double(1)
+Dd_at=data.frame(D_at)
+Dd_at$p=rep(0,na+nt)
+nR=length(R)
+P_r_anum = as.double(rep(0,nR-1))
+P_r_tnum = as.double(rep(0,nR-1))
+
+for (l in 2:nR) {
+r1=R[l-1]
+r2=R[l]
+k=1
+for (m in D_at$M) {
+  k=k+1
+  v=D_at$V[k-1]
+  p_r_m=proba(m,r_inf=r1,r_sup=r2,D=D_at) # probabilité de ce revenu sachant la modalité m
+
+  # ceci n'a besoin d'être calculé qu'une fois, la matrice moment ne change jamais Cette partie du code doit être mise hors de la boucle
+  # cette partie du code pourrait être rendue plus élégante
+  if (v=="a") {
+    toto = C[C$a == m,]
+    I=as.integer(row.names(toto))
+    p_m=sum(toto$p)
+    }
+  else {
+    toto = C[C$t == m,]
+    I=as.integer(row.names(toto))
+    p_m=sum(toto$p)
+  } # fin si nous ne somme pas dans une modalité qui appartient à l'age, donc nous somme dans une modalité qui appartient à la taille
+Dd_at$p[k-1]=p_r_m*p_m
+Moment[k,I]= rep(1, length(I))
+} # fin de la boucle sur toutes le modalités de toutes les variables
+
+# pour calculer eta, il faut connaite p_r qu peut être calculé selon a, c'est p_r_a ou selon t, c'est p_r_t, ceci est sauvegardé dans le data Frame Ss pour analyse
+
+
+# le codes suivant est dupliqué... Ce n'est pas très propre
+p_r_a_m= Dd_at[Dd_at$V=="a",]$p
+p_r_a=sum(p_r_a_m)
+P_r_anum[l-1]=p_r_a
+Eta[2:(na+1)]=p_r_a_m/p_r_a
+
+p_r_t_m= Dd_at[Dd_at$V=="t",]$p
+p_r_t=sum(p_r_t_m)
+P_r_tnum[l-1]=p_r_t
+Eta[(na+2):(na+nt+1)]=p_r_t_m/p_r_t
+
+# minxent ne gère pas les chutes de rang... Nous pourrions les gérer intelligemment, il faut réfléchir, en attendant
+
+# ceci n'a besoin d'être calculé qu'une fois, la matrice moment ne change jamais
+A=qr(t(Moment))
+I=A$pivot[1:A$rank]
+# fin à retirer de la boucle  
+
+
+ tryCatch (
+        expr = {
+           Sortie=minxent.multiple(q=p_at,G=Moment[I,],eta=c(Eta[I]),lambda=Lambda_old[2:A$rank]) # mieux gérer les lambda
+           Lambda_old=Sortie$Langrangians
+        },
+        error = function(e){
+            message('Erreur sur minxent.multiple : les contraintes sur une variable sont supprimées')
+            I=c(1,5,6,7) # mis en dur à améliorer : on se concentre sur la variable taille
+            Sortie=minxent.multiple(q=p_at,G=Moment[I,],eta=c(Eta[I]),lambda=c(rep(0,3))) # mis en dur à améliorer : on se concentre sur la variable taille
+            Lambda_old=c(rep(0,na+nt))
+            print(e)
+        },
+        warning = function(w){
+            message('Caught an warning!')
+            print(w)
+        },
+        finally = {
+            p_at_r=Sortie$Estimates
+           # message('All done, quitting.')
+        }
+    )   # fin de la gestion des erreurs de minxent.multiple 
+
+vv=paste0("R",l)
+S[[vv]]=matrix(p_at_r, nrow=nlib, ncol=1)
+
+} # fin de la boucle sur tous les revenus qui sont renseignés par les déciles
+
+# Préparation des résultats afin de comparer les probabilités du revenu provenant de la taille et celle provenant de l'age....
+P_r_a=c(NA,NA,NA,NA,NA,P_r_anum)
+P_r_t=c(NA,NA,NA,NA,NA,P_r_tnum)
+names(P_r_a)=names(S)
+names(P_r_t)=names(S)
+Ss = rbind(S, P_r_a, P_r_t)
+Ss$pr=c(rep(NA,na*nt),'Proba_r_age','Proba_r_taille')
+print(Ss)  
+
+```
+
+Ce data frame fournit pour les 12 modalités croisées la proportion de la modalité croisée, p, le revenu moyen, r, et l'écart type, std, qui ont permis de générer la population synthétique, puis pour les 64 modalités de revnula probabilité de la modalité sachant le revenu. Par exemple, la première ligne de R2 correspond à la probabilité d'être un ménage de moins de 30 ans de taille 1 sachant que le revenu appartient à l'intervalle entre le revenu minimum Rmin (5000 euros) et le revenu correspondant au premier décile pour toutes les modalités (qui doit être environ 8000). Cette proportion de 28% est qualitativement normale.
+
+*Les deux dernières lignes du tableau sont les probabilités de revenu calculés selon deux méthodes : soit en faisant la somme sur les modalités de l'age de la personne de référence (c'est l'avant dernière ligne), soit en faisant la somme sur les modalités de la taille du ménage (c'est la dernière ligne). Les différences, importantes, proviennent du calcul des déciles. Ceci est à analyser, notamment en fonction du nombre de ménage simulé...A discuter*
+
+*Il ne faut pas utiliser la modalité NA car elle considérat comme vrai lorsque des tests logiques sont effectués...A améliorier*
+
+
+## Comparaison des résultats réels et prédits par modalité croisé
+
+```{r}
+Res=data.frame(C)
+lRes = dim(Res)[1]
+p_R=Ss[na*nt+2,6:(6+nR-2)]; # à durcir car dépend dont est construit le dataframe...
+nR=length(R)
+R1=R[1:nR-1]
+R2=R[2:nR]
+for (k in 1:lRes) {
+
+Data=Pop[Pop$a==Res$a[k] & Pop$t==Res$t[k],]$r;
+
+  if (length(Data)>0) {
+    Res$mPop[k]=as.double(mean(Data))
+    if (length(Data)>1) {
+      Res$stdPop[k]=as.double(sd(Data))
+    } else  # fin si (length(Data)>1)
+      { # cas dégénéré ou il n y a qu'une seule observation expérimentale
+      Res$stdPop[k]=NA
+    } # fin sinon
+  } else { # fin si (length(Data)>0)
+    # cas dégénéré ou il n y a pas d'observation expérimentale
+    Res$mPop[k]=NA
+    Res$stdPop[k]=NA
+  } # fin sinon
+
+
+  p_a_t_R=S[S$a==Res$a[k] & S$t==Res$t[k],6:(6+nR-2)]; # à durcir car dépend dont est construit le dataframe...
+  p_R_a_t = p_a_t_R*p_R
+  p_R_a_t = p_R_a_t/sum(p_R_a_t)
+  Res$mPredit[k]= sum( (R1+R2)/2*p_R_a_t )
+  varPredit=sum(  ((R2^3-R1^3)/3) / (R2-R1) *p_R_a_t ) - Res$mPredit[k]^2
+  Res$stdPredit[k]=sqrt(varPredit)
+
+}
+
+print(Res)
+
+
+
+```
+Ce data frame fournit pour les 12 modalités croisées la proportion de la modalité croisée, p, le revenu moyen, r, et l'écart type, std, qui ont permis de générer la population synthétique,
+* la moyenne du revenu de la population synthétique pour la modalité concerné, mPop,  
+* son écart type, stdPop (NA signifie qu'il n'y a qu'un ménage qui a cette modalité croisée, l'écart type ne peut pas être calculé),
+* la moyenne du revenu pour cette modalité calculée à partir de notre méthodologie de reconstruction de la loi du revenu, mPredit
+* idem pour l'écart type, stdPredit
+
+**La moyenne est bien prédite, l'écart type est surévalué mais dans des proportions acceptables.... A discuter**
+
+
+
+# Mise en oeuvre de la méthodologie  par minimisation de l'entropie
+
+$$ Max \; -\sum_{i,j} P( a_i \text{ et } t_j  \text{ et }  r) \ln(P( a_i \text{ et } t_j  \text{ et }  r)) $$
+sous les contraintes
+
+$$ \sum_{r} P( a_i \text{ et } t_j  \text{ et }  r) = P( a_i \text{ et } t_j) $$
+et
+
+$$ \sum_{i} P(a_i \text{ et } t_j \text{ et } r) = P(r | a_i) P(a_i)$$
+
+Cette minimisation comprend un grand nombre de degrés de liberté égal à toutes les modalités croisés x tous les revenus possibles. 
+Dans notre cas : 4x3 modalités croisés x (9x7 déciles+2 (le rmin et le rmax))=780 degrés de liberté dans ce cas simple !
+
+Contraintes
+  * 12 contraintes sur les probabibilités jointes
+  * 10*7 contraintes sur les revenus
+
+
+## Construction des contraintes
+```{r methodo-entropie-construction-des contraintes}
+# Nouvelle méthodologie
+# construction des contraintes ; 
+# les probabilités sont classées dans l'ordre suivant
+# a1 b1 r1
+# a2 b1 r1
+# a1 b2 r1
+# a2 b2 r1
+# a1 b1 r2
+# a2 b1 r2
+# etc.
+# somme_sur_r P(ai et ti et r) = P(ai et tj)
+# construction des etas
+C[C$a==M_a[1] & C$t==M_t[2],]$p
+N_mod=c(length(M_a), length(M_t), length(R)-1)  # vecteur du nombre  de modalité-
+n_at= N_mod[1]*N_mod[2]                         # nombre  de modalités qualitatives
+n_deg=N_mod[1]*N_mod[2]*N_mod[3];               # nombre de degrés de liberté 
+# construction de la matrice des moments sur les modalités
+Mom_mod=matrix(rep(0, n_at*n_deg), nrow=n_at,ncol=n_deg)
+Eta_mod=matrix(rep(0,n_at), nrow=n_at, ncol=1)
+indice=matrix(rep(0,N_mod[3]), nrow=1,ncol=N_mod[3])
+for( k in 1:N_mod[3]){
+  indice[k]=as.double(1+(k-1)*n_at)
+}
+for( j in 1:N_mod[2]){
+  for(i in 1:N_mod[1]){
+    k=i+(j-1)*N_mod[1]
+    Mom_mod[k,indice+(k-1)]=rep(1,N_mod[3])
+    Eta_mod[k]=C[C$a==M_a[i] & C$t==M_t[j],]$p
+  }
+}
+# construction de la matrice des moments sur les revenus
+CAlc_lig_rev<- function(modalite,  r1, r2 ){
+ligne=matrix(rep(0, n_deg), nrow=1,ncol=n_deg)
+nR=length(R)
+R1=matrix(R[1:nR-1], nrow=nR-1, ncol=1)
+R2=matrix(R[2:nR], nrow=nR-1, ncol=1)
+for( k in 1:N_mod[3]){
+for( j in 1:N_mod[2]){
+for( i in 1:N_mod[1]){
+l=i+(j-1)*N_mod[1]+(k-1)*N_mod[2]*N_mod[1]
+if(( (as.character(M_a[i]) == as.character(modalite)) | (as.character(M_t[j]) == as.character(modalite)) ) & ( (R1[k]>=r1) & (R2[k]<=r2) )){
+  ligne[l]=as.double(1) # Il faut qu'il le considère comme double
+  }
+  else {
+  }
+} # fin pour k
+} # fin pour j
+} # fin pour i 
+return(ligne)
+} # fin function CAlc_lig_rev
+n_cont_rev=nDec*(N_mod[1]+N_mod[2])
+Eta_rev=matrix(rep(pDec, n_cont_rev), nrow=n_cont_rev, ncol=1) 
+l=1;
+for(i in 1:nrow(D_at)){
+  modalite=D_at$M[i]
+  p_modalite=sum(C[( (as.character(C$a) == modalite) | (as.character(C$t) == modalite) ),]$p)
+ for( k in 1:nDec ){
+  r1=D_at[i,1+k]
+  r2=D_at[i,1+k+1]
+  if( (i==1) & (k==1) ){
+  Mom_rev=CAlc_lig_rev(modalite, r1, r2)
+ }else{
+  Mom_rev=rbind(Mom_rev,CAlc_lig_rev(modalite, r1, r2))
+ }
+ Eta_rev[l]=Eta_rev[l]*p_modalite
+ l=l+1
+} # fin pour k
+} # fin pour i
+# test sans prendre en compte les contraintes sur le revenu
+Mom = rbind(matrix(rep(1,n_deg),nrow=1,ncol=n_deg), Mom_mod)
+Eta = rbind(1,Eta_mod)
+# test en ne prenant que les contraintes sur le revenu
+Mom = rbind(matrix(rep(1,n_deg),nrow=1,ncol=n_deg), Mom_rev)
+Eta = rbind(1,Eta_rev)
+# en prenant toutes les contraintes
+Mom = rbind(matrix(rep(1,n_deg),nrow=1,ncol=n_deg), Mom_mod, Mom_rev)
+Eta = rbind(1,Eta_mod, Eta_rev)
+```
+La construction des contraintes est fastidieuses et dépend de l'ordre de classement des probabilitéés.
+Ce morceau de code est difficile à comprendre.... A améliorer
+
+Des tests unitaires ont été effectués en prenant ndec=2. 
+La matrice des Moments correspondant aux contraintes sur les revenues Mom_rev et Eta_rev ont été vérifiés.
+Mom_mod et Eta_mod correspondant aux contraintes sur les probabilités jointes mériteraient une vérification approfondies mais elles sont plus simples à mettre à en oeuvre.
+
+```{r methodo-entropie-optimisation}
+# vérification du rang de la matrice
+A=qr(t(Mom))
+I=A$pivot[1:A$rank]
+# vérification que le système est compatible
+library(boot) # POV 14 septembre pour avoir la fonction simplexe
+ M=dim(Mom[I,])
+    mc=M[2] # nombre de colonne, c'est aussi le nombre de variable
+    ml=M[1] 
+    Coef_objectif=c(rep(0,mc), rep(1,ml)) # fonction objectif
+    Id=diag(rep(1,ml))
+    M_equation= cbind(Mom[I,], Id)
+    result=simplex(
+      a=Coef_objectif,
+      A3=M_equation, #contraines
+      b3=Eta[I])
+    #if (abs(result$value)<tol_compatibilite) { break}
+#POV test du 13 octobre 2020  Mom[I,]%*%result$soln[1:264]-Eta[I]
+tol_compatibilite <- 1e-8 ; # tolérance sur la compatibilité du système (vérifier )
+if(abs(result$value)>tol_compatibilite){
+      print(" système incompatible")
+      indice_contrainte_violee=which.max(result$soln[seq(mc+1,mc+ml)]) #voir la contrainte qui déconne le plus (voir dans les 16 dernières, voir ce qui déconne le plus) break ?
+      p_out=matrix(result$soln[1:n_deg],nrow=n_deg,ncol=1) # POV VERRUE comme le système est incompatible !
+     } else{
+  print("système compatible")
+p_init=rep(as.double(1/n_deg), n_deg)
+# voir article2004Entropy-PolmehtPaperArchive.pdf 
+# Entropy optimization  : computer implementation of  the maxent and mixent principles
+# Rogerio Silva de Mattos
+# Alvaro Veigo
+# Nous sommes faces à un problème numérique
+# Le hessien atteint des conditionnements égaux à 10^91
+# même si on limite le hessien, les exponentielles explosent !!!
+# Une solution est d'utiliser la solution compatible, calculer des lambda et partir de ces lambda ?
+# c'est, peut-être, indiqué dans l'article...A vérifier
+pov_minxent.multiple<-function (q, G, eta,lambda) 
+{
+fk<-function (lambda, q, G, eta) 
+{
+     lambda0<-log(sum(q*exp(-lambda%*%G[-1,])))
+     (q * exp(-lambda0)*exp(-lambda %*% G[-1,]))%*% t(G) - eta # POV : voir article maxent
+}
+condmax=1e6; # POV pourquoi pas erreur À 200 et à 50 quand la population augmente, algorithme pas étudié pour les grandes degrés de liberté, plus le conditionnement est important, mieux on colle aux marginaux
+    lambda0 <- log(sum(q * exp(-lambda * G[-1, ])))
+    repeat {
+        lambda_old <- lambda
+        lambda0 <- log(sum(q * exp(-lambda_old %*% G[-1, ])))
+        f_old = fk(lambda_old, q = q, G = G, eta = eta)
+        dev.ent <- (q * exp(-lambda0) * exp(-lambda_old %*% G[-1, 
+            ])) %*% t(G)
+        pg <- c(q * exp(-lambda0) * exp(-lambda_old %*% G[-1, 
+            ]))
+        #print(" regarder cbind(G%*%pg, eta)")
+        #browser() # POV pour faire un break dans le code
+        cov.ent <- cov.wt(t(G), wt = pg, method = "ML", cor = FALSE) # une erreur a lieu ici car pg est NaN
+        hess.ent <- cov.ent$cov
+        W <- hess.ent[-1, -1]
+        condW=kappa(W)
+        if(condW<condmax){Go <- solve(W)} # POV : traitement de la chute de rang du hessien
+        else{
+          SVDW=svd(W)
+          V_sing_non_nulle = SVDW$d[SVDW$d[1]/SVDW$d < condmax]
+          
+          Go=SVDW$v%*%diag(c(1/V_sing_non_nulle, rep(0,length(SVDW$d)-length(V_sing_non_nulle))))%*%t(SVDW$u)
+        }
+        lambda <- lambda_old + f_old[, -1] %*% Go
+        
+        if (max(abs(lambda - lambda_old)) < 1e-08) 
+            break
+    }
+    out.lj <- list(estimates = lambda, infmat = Go)
+    lambda <- out.lj$estimates
+    lambda0 <- log(sum(q * exp(-lambda %*% G[-1, ])))
+    pi_solve <- (q * exp(-lambda0) * exp(-lambda %*% G[-1, ]))
+    list(Langrangians= c(lambda0,lambda) , Estimates=pi_solve)
+}
+
+############# Partie du code permettant de lancer l'optimisation SQP
+# le coup du log(0) n'est pas bien traité
+library("nloptr")
+p_adm=matrix(result$soln[1:n_deg],nrow=n_deg,ncol=1)
+lb=rep(0, n_deg)
+ub=rep(1, n_deg)
+log_pov<-function(x){#a=matrix(rep(0,n_deg),nrow=nrow(x),ncol=ncol(x))
+                                  a=rep(0,n_deg)  
+                                  a[x==0]=-1e-10;
+                                  a[x!=0]=log(x[x>0])
+                                  a}
+ENtropie<-function(x){-matrix(x, ncol=n_deg, nrow =1)%*%log_pov(matrix(x, nrow=n_deg,ncol=1))}
+GEntropie<-function(x){-matrix(c(rep(1,n_deg)), ncol=n_deg, nrow=1) -matrix(log_pov(x), ncol=n_deg, nrow=1)}
+EGalite<-function(x){Mom%*%matrix(x,nrow=n_deg, ncol=1)}
+GEgalite<-function(x){Mom}
+############# FIN  Partie du code permettant de lancer l'optimisation SQP  
+  
+ tryCatch (
+        expr = {
+           Sortie=pov_minxent.multiple(q=p_init,G=Mom[I,],eta=Eta[I],lambda=c(rep(0, length(I)-1)))  
+        },
+        error = function(e){
+            message('Erreur sur pov_minxent.multiple (maximisation de l'entropie) : utilisation de la   ')
+            sqp=nloptr(x0=p_adm, eval_f=ENtropie, eval_grad_f = GEntropie, lb = lb, ub = ub, eval_g_ineq = NULL, eval_jac_g_ineq = NULL, eval_g_eq = EGalite, eval_jac_g_eq = GEgalite, opts=list("algorithm"= "NLOPT_LD_SLSQP", "xtol_rel"=1.0e-2))
+            p_out=sqp$solution
+            print(e)
+        },
+        warning = function(w){
+            message('Caught an warning!')
+            print(w)
+        },
+        finally = {
+            p_out=Sortie$Estimates
+           # message('All done, quitting.')
+        }
+    )   # fin de la gestion des erreurs de minxent.multiple 
+
+} # fin si le système est compatible
+p_out=matrix(p_out,nrow=length(p_out),ncol=1)
+```
+
+```{r présentation des résultats de la deuxième methodologie en comparaisons avec la première}
+nR=length(R)
+R1=matrix(R[1:nR-1], nrow=nR-1, ncol=1)
+R2=matrix(R[2:nR], nrow=nR-1, ncol=1)
+indice=matrix(rep(0,N_mod[3]), ncol=1,nrow=N_mod[3])
+for( k in 1:N_mod[3]){
+  indice[k]=as.double(1+(k-1)*n_at)
+}
+for (k in 1:n_at) {
+  p_a_t_r = p_out[indice+(k-1)];
+  p_R_a_t = p_a_t_r/sum(p_a_t_r) # POV cela se discute !
+  Res$mPredit2[k]= sum( ((R1+R2)/2)*p_R_a_t )
+  varPredit=sum(   (((R2^3-R1^3)/3) / (R2-R1)) *p_R_a_t ) - Res$mPredit2[k]^2
+  Res$stdPredit2[k]=sqrt(varPredit)
+  #browser()
+}
+print(Res)
+```
