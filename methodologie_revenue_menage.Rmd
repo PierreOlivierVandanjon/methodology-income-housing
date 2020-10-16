@@ -6,7 +6,7 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE,warning=FALSE)
+knitr::opts_chunk$set(echo = TRUE,warning=TRUE)
 ```
 
 # Introduction
@@ -18,7 +18,7 @@ Règles d'écriture :
 * les noms des objets de dimensions supérieurs commencent par une majuscule
 * les noms des fonctions commencent par deux majuscules
 
-# Le cas d'étude
+## Le cas d'étude
 Le nombre d'individus de la population n ( n  doit être un multiple de 100) .
 
 Nous générons une population synthétique avec deux variables qualitatives age de la personne de référence et taille du ménage.
@@ -38,7 +38,7 @@ Il y a 3 modalités pour l'age de la personne de référence et 4 modalités pou
 M_a=c('moins_de_30ans', '30-60ans','plus_de_60ans') # Modalite age
 M_t=c('1', '2','3','4_et_plus') # Modalite taille
 C=expand.grid(a=M_a,t=M_t,p=0,r=0,std=0) # tableau de contingence
-n=500 # N doit être divisible par 100
+n=400 # N doit être divisible par 100
 rmin=5000
 rmax=10*rmin
 print(C)
@@ -144,7 +144,7 @@ Chaque individu de la population synthétique comprend un modalité d'age, a,  u
 
 ```{r}
 library("msm")
-set.seed(1)
+set.seed(2)
 Popp=c();
 for (o in M_a) {
   for (oo in M_t){
@@ -156,7 +156,7 @@ for (o in M_a) {
   } # fin for oo
   } # fin for o
 Pop=data.frame(a=as.factor(Popp[,1]),t=as.factor(Popp[,2]),r=as.integer(Popp[,3]), rp=as.integer(Popp[,4]) )
-print(Pop)
+# print(Pop) utilisé en test unitaire pour vérifier que les revenus sont biens fournis.
 ```
 
 ## Construction des déciles
@@ -227,23 +227,12 @@ R=Rw
 #   } # fin pour j
 ```
 
-Nous construisons une fonction permettant de calculer les probablités du revenu connaissant les déciles en nous basant sur notre hypthèse principale d'approximation linéaire entre les déciles fournis.
-Construction de la fonction proba qui donne la probabilité de l'intervalle d'un revenu connaissant sa modalité
-```{r}
-proba=function(m,r_inf=rmin,r_sup=rmax,D=D_at,p=Deciles){ #
-  nd =dim(D)[2] # nombre de colonnnes
-  D_r=as.double(D[D[,1]==m,names(D)!="M" & names(D) != "V"])#distribution revenu
-  p_inf=approx(D_r,p, xout=r_inf, method="linear", ties="ordered")$y
-  p_sup=approx(D_r,p, xout=r_sup, method="linear", ties="ordered")$y
-  as.double(p_sup-p_inf)
-}
-```
-# Mise en oeuvre de la méthodologie heuristique par minimisation de l'entropie croisée
+# Mise en oeuvre  Méthodologie heuristique par minimisation de l'entropie croisée
 
-La probabilité des modalités croisées est directement donnée dans le tableau d'occurence.
 
 *Amélioration : dans le code, il est supposé que toutes les modalités de toutes les variables ont des noms différents, ceci est à durcir.*
-# Méthodologie
+
+## Méthodologie
 
 Note : dans la suite
 * r signifie : le revenu est égal à r;
@@ -256,7 +245,7 @@ $$ P(r \; | \; (\text{a et t})) $$
 Remarque : nous utilisons la notation P pour probabilité alors que c'est une densité de probabilité qui est plutôt noté f. Dans la suite, cette fonction de densité sera discrétisé, la notation P sera, alors, la notation naturelle.
 
 
-*L'hypothèse principale est que nous supposons une approximation linéaire entre deux déciles. Concrêtement, si le revenu correspondant au decile à 20 % est de 10 000 euros et que le revenu correspondant au décile à 30 % est 15 000 euros, nous supposerons que les revenus obeissent à une loi uniforme enter 10 000 euros et 15 000 euros dont l'intégrale entre ces deux bornes vaut 0.1. Ceci est une hypothèse qui ne correspond pas à la façon dont nous avons construit les revenus. Les revenus ont été construits à partir d'une loi gaussienne tronquée. Nous nous situons dans un cas plutôt défavorable.*
+**L'hypothèse principale est que nous supposons une approximation linéaire entre deux déciles. Concrêtement, si le revenu correspondant au decile à 20 % est de 10 000 euros et que le revenu correspondant au décile à 30 % est 15 000 euros, nous supposerons que les revenus obeissent à une loi uniforme enter 10 000 euros et 15 000 euros dont l'intégrale entre ces deux bornes vaut 0.1. Ceci est une hypothèse qui ne correspond pas à la façon dont nous avons construit les revenus. Les revenus ont été construits à partir d'une loi gaussienne tronquée. Nous nous situons dans un cas plutôt défavorable.**
 
 En appliquant le théorème de Bayes, nous obtenons
 
@@ -289,7 +278,7 @@ Dans notre cas d'étude, il y a 12 degrés de liberté et 7 contraintes.
 
 Cependant, nous n'allons pas résoudre ce problème d'optimisation pour tous les revenus r. Nous construisons un vecteur de revenu, R, qui concatène tous les revenus correspondants à tous les déciles. Ce vecteur de revenu est trié depuis rmin jusqu'à rmax qui correspond à une discrétisation de la variable revenue.
 
-*Cette discrétisation est issue de la remarque suivante : entre chaque élément successif du vecteur revenu, il n'y a pas d'information supplémentaire que celle contenu dans les deux bornes du revenu.*
+**Cette discrétisation est issue de la remarque suivante : entre chaque élément successif du vecteur revenu, il n'y a pas d'information supplémentaire que celle contenu dans les deux bornes du revenu.**
 
 
 Comme il y a 7 modalités, cela correspond à 64 optimisation (7x9-1 + les deux intervalles avec rmin et rmax) dans le cas où le nombre de décile ndec=10.
@@ -303,14 +292,13 @@ $$P(rk \; | \;  a_i \text{ et } t_j)  = P(   a_i \text{ et } t_j  \; | \; rk )\f
 Pour affecter un revenu à un individu, ses modalités croisés, ai et tj, sont analysées. La formule précédente fournit la loi pour tirer un revenu au hasard : nous tirons alors au hasard un intervalle, rk, selon la probabilité P(rk sachant ai et tj) puis nous tirerons  au hasard au sein de cet intervalle selon la loi uniforme.
 
 
-# Application
+## Mise en oeuvre
 
-La probabilité des modalités croisées est directement donnée dans le tableau d'occurence.
 
 *Amélioration : dans le code, il est supposé que toutes les modalités de toutes les variables ont des noms différents, ceci est à durcir.*
 
 
-```
+Nous construisons une fonction permettant de calculer les probablités du revenu connaissant les déciles en nous basant sur notre hypthèse principale d'approximation linéaire entre les déciles fournis.
 Construction de la fonction proba qui donne la probabilité de l'intervalle d'un revenu connaissant sa modalité
 ```{r}
 proba=function(m,r_inf=rmin,r_sup=rmax,D=D_at,p=Deciles){ #
@@ -320,8 +308,8 @@ proba=function(m,r_inf=rmin,r_sup=rmax,D=D_at,p=Deciles){ #
   p_sup=approx(D_r,p, xout=r_sup, method="linear", ties="ordered")$y
   as.double(p_sup-p_inf)
 }
-
 ```
+
 
 ## Estimation de la loi de probabilité  par minisation de l'entropie croisée
 
@@ -482,9 +470,9 @@ Data=Pop[Pop$a==Res$a[k] & Pop$t==Res$t[k],]$r;
   p_a_t_R=S[S$a==Res$a[k] & S$t==Res$t[k],6:(6+nR-2)]; # à durcir car dépend dont est construit le dataframe...
   p_R_a_t = p_a_t_R*p_R
   p_R_a_t = p_R_a_t/sum(p_R_a_t)
-  Res$mPredit[k]= sum( (R1+R2)/2*p_R_a_t )
-  varPredit=sum(  ((R2^3-R1^3)/3) / (R2-R1) *p_R_a_t ) - Res$mPredit[k]^2
-  Res$stdPredit[k]=sqrt(varPredit)
+  Res$mPredit1[k]= sum( (R1+R2)/2*p_R_a_t )
+  varPredit=sum(  ((R2^3-R1^3)/3) / (R2-R1) *p_R_a_t ) - Res$mPredit1[k]^2
+  Res$stdPredit1[k]=sqrt(varPredit)
 
 }
 
@@ -509,16 +497,23 @@ $$ Max \; -\sum_{i,j} P( a_i \text{ et } t_j  \text{ et }  r) \ln(P( a_i \text{ 
 sous les contraintes
 
 $$ \sum_{r} P( a_i \text{ et } t_j  \text{ et }  r) = P( a_i \text{ et } t_j) $$
-et
+Le nombre de contraintes de ce type est égal aux nombres de modalités croitsés.
 
-$$ \sum_{i} P(a_i \text{ et } t_j \text{ et } r) = P(r | a_i) P(a_i)$$
+Ensuite, nous tenons compte des marginaux sur les revenus :
+
+$$ \sum_{j} P(a_i \text{ et } t_j \text{ et } r \in [r1,r2]) = P(r \in [r1,r2] | a_i) P(a_i)$$
+[r1,r2] correpond à tous les intervalles fournies par les déciles sur les marginaux, si il y a 10 déciles, 
+
+$P(r \in [r1,r2] | a_i)=0.1$
+
+Le nombre de contraintes correspond au nombre de déciles pour toutes les modalités.
 
 Cette minimisation comprend un grand nombre de degrés de liberté égal à toutes les modalités croisés x tous les revenus possibles. 
-Dans notre cas : 4x3 modalités croisés x (9x7 déciles+2 (le rmin et le rmax))=780 degrés de liberté dans ce cas simple !
+Dans notre cas : 4x3 modalités croisés x (9x7 déciles+2 (le rmin et lre rmax))=780 degrés de liberté dans ce cas simple !
 
 Contraintes
   * 12 contraintes sur les probabibilités jointes
-  * 10*7 contraintes sur les revenus
+  * 10*7 contraintes sur les revenus dans le cas où il y a 10 déciles
 
 
 ## Construction des contraintes
@@ -535,7 +530,6 @@ Contraintes
 # etc.
 # somme_sur_r P(ai et ti et r) = P(ai et tj)
 # construction des etas
-C[C$a==M_a[1] & C$t==M_t[2],]$p
 N_mod=c(length(M_a), length(M_t), length(R)-1)  # vecteur du nombre  de modalité-
 n_at= N_mod[1]*N_mod[2]                         # nombre  de modalités qualitatives
 n_deg=N_mod[1]*N_mod[2]*N_mod[3];               # nombre de degrés de liberté 
@@ -601,39 +595,30 @@ Eta = rbind(1,Eta_rev)
 Mom = rbind(matrix(rep(1,n_deg),nrow=1,ncol=n_deg), Mom_mod, Mom_rev)
 Eta = rbind(1,Eta_mod, Eta_rev)
 ```
-La construction des contraintes est fastidieuses et dépend de l'ordre de classement des probabilitéés.
-Ce morceau de code est difficile à comprendre.... A améliorer
+*La construction des contraintes est fastidieuse et dépend de l'ordre de classement des probabilitéés.
+Ce morceau de code est difficile à comprendre.... A améliorer*
 
 Des tests unitaires ont été effectués en prenant ndec=2. 
 La matrice des Moments correspondant aux contraintes sur les revenues Mom_rev et Eta_rev ont été vérifiés.
 Mom_mod et Eta_mod correspondant aux contraintes sur les probabilités jointes mériteraient une vérification approfondies mais elles sont plus simples à mettre à en oeuvre.
 
+## Estimation des probabiltés par maximisation de l'entropie
+
+ Trois algorithmes différents pour trouver une solution sont mis en oeuvre
+
+* Un simplexe est utilisé pour vérifier que les contraintes sont compatibles entres elles. Si les contraintes sont incompatibles, la solution est fournie par le simplexe. Dans le cadre étudié ici, le système est compatible car notre génération de données est cohérente. Dans le cas réel nantais, il y aura forcément des différences entre la base filosofie et la base insee : par exemple, le référent fiscal est différent du référent ménage....
+
+* ensuite l'algorithme minxent.multiple est utilisé, il a donné entière satisfaction pour la première méthodologie, avec cette optimisation plus complexe, il sature des exponentielles qui deviennent inf. Ceci est notamment du à un Hessien qui a une chute de rang numérique. Lorsque ce problème est traité, la solution fournie ne respecte pas les contraintes et restent proches des probabilités uniformes....Bref, la solution fournie n'est pas du tout intéressante.
+
+* enfin un sqp est mis en oeuvre qui donne un résultat compatible avec les contraintes.
+
+
 ```{r methodo-entropie-optimisation}
 # vérification du rang de la matrice
 A=qr(t(Mom))
 I=A$pivot[1:A$rank]
-# vérification que le système est compatible
-library(boot) # POV 14 septembre pour avoir la fonction simplexe
- M=dim(Mom[I,])
-    mc=M[2] # nombre de colonne, c'est aussi le nombre de variable
-    ml=M[1] 
-    Coef_objectif=c(rep(0,mc), rep(1,ml)) # fonction objectif
-    Id=diag(rep(1,ml))
-    M_equation= cbind(Mom[I,], Id)
-    result=simplex(
-      a=Coef_objectif,
-      A3=M_equation, #contraines
-      b3=Eta[I])
-    #if (abs(result$value)<tol_compatibilite) { break}
-#POV test du 13 octobre 2020  Mom[I,]%*%result$soln[1:264]-Eta[I]
-tol_compatibilite <- 1e-8 ; # tolérance sur la compatibilité du système (vérifier )
-if(abs(result$value)>tol_compatibilite){
-      print(" système incompatible")
-      indice_contrainte_violee=which.max(result$soln[seq(mc+1,mc+ml)]) #voir la contrainte qui déconne le plus (voir dans les 16 dernières, voir ce qui déconne le plus) break ?
-      p_out=matrix(result$soln[1:n_deg],nrow=n_deg,ncol=1) # POV VERRUE comme le système est incompatible !
-     } else{
-  print("système compatible")
-p_init=rep(as.double(1/n_deg), n_deg)
+
+
 # voir article2004Entropy-PolmehtPaperArchive.pdf 
 # Entropy optimization  : computer implementation of  the maxent and mixent principles
 # Rogerio Silva de Mattos
@@ -643,13 +628,15 @@ p_init=rep(as.double(1/n_deg), n_deg)
 # même si on limite le hessien, les exponentielles explosent !!!
 # Une solution est d'utiliser la solution compatible, calculer des lambda et partir de ces lambda ?
 # c'est, peut-être, indiqué dans l'article...A vérifier
-pov_minxent.multiple<-function (q, G, eta,lambda) 
-{
+# j'ai modifié l'algorithme pour traiter ce point mais dans ce cas, la solution s'éloigne des marginaux et présente donc peut d'intére
+
+############# Partie du code permettant de lancer l'optimisation pov_minxent
+pov_minxent.multiple<-function (q, G, eta,lambda) {
 fk<-function (lambda, q, G, eta) 
 {
      lambda0<-log(sum(q*exp(-lambda%*%G[-1,])))
      (q * exp(-lambda0)*exp(-lambda %*% G[-1,]))%*% t(G) - eta # POV : voir article maxent
-}
+} # fin fonction interne fk
 condmax=1e6; # POV pourquoi pas erreur À 200 et à 50 quand la population augmente, algorithme pas étudié pour les grandes degrés de liberté, plus le conditionnement est important, mieux on colle aux marginaux
     lambda0 <- log(sum(q * exp(-lambda * G[-1, ])))
     repeat {
@@ -666,65 +653,91 @@ condmax=1e6; # POV pourquoi pas erreur À 200 et à 50 quand la population augme
         hess.ent <- cov.ent$cov
         W <- hess.ent[-1, -1]
         condW=kappa(W)
-        if(condW<condmax){Go <- solve(W)} # POV : traitement de la chute de rang du hessien
+        if (condW<condmax)
+           {Go <- solve(W)} # POV : traitement de la chute de rang du hessien
         else{
+        # code spécifique pour tenir compte d'une chute de rang du hessien : cela ne fonctionne pas
           SVDW=svd(W)
           V_sing_non_nulle = SVDW$d[SVDW$d[1]/SVDW$d < condmax]
-          
           Go=SVDW$v%*%diag(c(1/V_sing_non_nulle, rep(0,length(SVDW$d)-length(V_sing_non_nulle))))%*%t(SVDW$u)
-        }
+        } # fin sinon le conditionnement du hessien est acceptable
         lambda <- lambda_old + f_old[, -1] %*% Go
-        
-        if (max(abs(lambda - lambda_old)) < 1e-08) 
-            break
-    }
+        if (max(abs(lambda - lambda_old)) < 1e-08)
+            {break} # on sort de la boucle
+    } # fin boucle
     out.lj <- list(estimates = lambda, infmat = Go)
     lambda <- out.lj$estimates
     lambda0 <- log(sum(q * exp(-lambda %*% G[-1, ])))
     pi_solve <- (q * exp(-lambda0) * exp(-lambda %*% G[-1, ]))
     list(Langrangians= c(lambda0,lambda) , Estimates=pi_solve)
-}
+} # fin function pov_minxent
+############# FIN  Partie du code permettant de lancer l'optimisation pov_minxent
 
 ############# Partie du code permettant de lancer l'optimisation SQP
 # le coup du log(0) n'est pas bien traité
 library("nloptr")
-p_adm=matrix(result$soln[1:n_deg],nrow=n_deg,ncol=1)
 lb=rep(0, n_deg)
 ub=rep(1, n_deg)
 log_pov<-function(x){#a=matrix(rep(0,n_deg),nrow=nrow(x),ncol=ncol(x))
                                   a=rep(0,n_deg)  
                                   a[x==0]=-1e-10;
                                   a[x!=0]=log(x[x>0])
-                                  a}
+                                  a} # fonction développé pour tenir compte du problème de log(0), il y a mieux à faire !!!!
 ENtropie<-function(x){-matrix(x, ncol=n_deg, nrow =1)%*%log_pov(matrix(x, nrow=n_deg,ncol=1))}
 GEntropie<-function(x){-matrix(c(rep(1,n_deg)), ncol=n_deg, nrow=1) -matrix(log_pov(x), ncol=n_deg, nrow=1)}
 EGalite<-function(x){Mom%*%matrix(x,nrow=n_deg, ncol=1)}
 GEgalite<-function(x){Mom}
 ############# FIN  Partie du code permettant de lancer l'optimisation SQP  
-  
- tryCatch (
+
+ p_out=rep(0,n_deg) # probabilite a posteriori
+# vérification que le système est compatible
+library(boot) # POV 14 septembre pour avoir la fonction simplexe
+M=dim(Mom[I,])
+mc=M[2] # nombre de colonne, c'est aussi le nombre de variable
+ml=M[1] 
+Coef_objectif=c(rep(0,mc), rep(1,ml)) # fonction objectif
+Id=diag(rep(1,ml))
+M_equation= cbind(Mom[I,], Id)
+result=simplex(
+a=Coef_objectif,
+A3=M_equation, #contraines
+b3=Eta[I])
+#POV test du 13 octobre 2020  Mom[I,]%*%result$soln[1:264]-Eta[I]
+tol_compatibilite <- 1e-8 ; # tolérance sur la compatibilité du système (vérifier )
+if (abs(result$value)>tol_compatibilite) {
+      print(" système incompatible")
+      indice_contrainte_violee=which.max(result$soln[seq(mc+1,mc+ml)]) #voir la contrainte qui déconne le plus (voir dans les 16 dernières, voir ce qui déconne le plus) break ?
+      p_out=matrix(result$soln[1:n_deg],nrow=n_deg,ncol=1) # POV VERRUE comme le système est incompatible !
+     } else {
+  print("système compatible")
+  p_adm=matrix(result$soln[1:n_deg],nrow=n_deg,ncol=1) 
+  p_init=rep(as.double(1/n_deg), n_deg)
+ p_out=tryCatch(
         expr = {
            Sortie=pov_minxent.multiple(q=p_init,G=Mom[I,],eta=Eta[I],lambda=c(rep(0, length(I)-1)))  
+            p_out=Sortie$Estimates
         },
         error = function(e){
-            message('Erreur sur pov_minxent.multiple (maximisation de l'entropie) : utilisation de la   ')
-            sqp=nloptr(x0=p_adm, eval_f=ENtropie, eval_grad_f = GEntropie, lb = lb, ub = ub, eval_g_ineq = NULL, eval_jac_g_ineq = NULL, eval_g_eq = EGalite, eval_jac_g_eq = GEgalite, opts=list("algorithm"= "NLOPT_LD_SLSQP", "xtol_rel"=1.0e-2))
-            p_out=sqp$solution
+            message('Erreur sur pov_minxent.multiple (maximisation de l entropie) : optimisation sqp  ')
             print(e)
+            sqp=nloptr(x0=p_adm, eval_f=ENtropie, eval_grad_f = GEntropie, lb = lb, ub = ub, eval_g_ineq = NULL, eval_jac_g_ineq = NULL, eval_g_eq = EGalite, eval_jac_g_eq = GEgalite, opts=list("algorithm"= "NLOPT_LD_SLSQP", "xtol_rel"=1.0e-8))
+            p_out=sqp$solution
+            return(p_out)
         },
         warning = function(w){
             message('Caught an warning!')
             print(w)
+            return(p_out)
         },
-        finally = {
-            p_out=Sortie$Estimates
-           # message('All done, quitting.')
-        }
+        finally = NULL
     )   # fin de la gestion des erreurs de minxent.multiple 
 
 } # fin si le système est compatible
 p_out=matrix(p_out,nrow=length(p_out),ncol=1)
 ```
+
+## Présentation des résultats
+
 
 ```{r présentation des résultats de la deuxième methodologie en comparaisons avec la première}
 nR=length(R)
@@ -744,3 +757,21 @@ for (k in 1:n_at) {
 }
 print(Res)
 ```
+Ce data frame fournit pour les 12 modalités croisées la proportion de la modalité croisée, p, le revenu moyen, r, et l'écart type, std, qui ont permis de générer la population synthétique. Il présente aussi :  
+
+* la moyenne du revenu de la population synthétique pour la modalité concernée, mPop,  
+* son écart type, stdPop (NA signifie qu'il n'y a qu'un ménage qui a cette modalité croisée, l'écart type ne peut pas être calculé),  
+* la moyenne du revenu pour cette modalité calculée à partir des deux méthodologies de reconstruction de la loi du revenu, mPredit  
+* idem pour l'écart type, stdPredit pour les deux parties  
+
+**Les grandes variations des moyennes de revenu sont prédites, les petites variations sont mal prédites : la précision est probablement suffisante pour notre usage**
+
+**les écarts types sont largement surévalués ce qui peut entrainer des revenus qui n'existent pas. Cependant, ceci provient des hypothèses initiales : loi normale tronquée approximée par des déciles avec une hypothèse forte sur une répartition uniforme des revenus sur les intervalles fournies. Dans la réalité, ce n'est pas évident que les revenus se distribuent selon une loi normale tronquée.**
+
+**Les résultats des deux méthodologies sont équivalentes, un peu meilleur pour l'heuristique, à discuter...**
+
+**Attention les résultats varient en fonction du nombre d'individus, du noyau aléatoire, etc. Bref, l'analyse doit se limiter sur les grandes tendances et pas sur les détails**
+
+
+
+
