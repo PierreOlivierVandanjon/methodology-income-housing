@@ -229,7 +229,7 @@ R=Rw
 
 # Mise en oeuvre  Méthodologie heuristique par minimisation de l'entropie croisée
 
-
+*Amélioration : faire un test de compatibilité avec le simplexe : ceci a été programmé directement dans le programme de traitement des données nantaise et dans la méthodologie sur l'entropie"
 *Amélioration : dans le code, il est supposé que toutes les modalités de toutes les variables ont des noms différents, ceci est à durcir.*
 
 ## Méthodologie
@@ -489,15 +489,24 @@ Ce data frame fournit pour les 12 modalités croisées la proportion de la modal
 
 **La moyenne est bien prédite, l'écart type est surévalué mais dans des proportions acceptables.... A discuter**
 
+*Nous ne retrouvons pas sur cet exemple les problèmes de probabilité supérieur à 1 ou de probabilité négatives : c'est un point à vérifier. Ces anomalies sont normales dans le sens où l'optimisation locale sur chaque intervalle de revenue n'assurent pas une cohérence d'ensemble des probabilité sur tous les revenus*
+
+*Le système est incompatible pour un intervalle de revenu. Ceci peut s'expliquer par l'hypothèse rajoutée sur l'uniformité des revenus sur un intervalle. Ce qui est étonnant, c'est que cette incompatibilité locale pour un intervalle ne se retrouve lorsque nous traitons les données nantaises*
 
 
-# Mise en oeuvre de la méthodologie  par minimisation de l'entropie
+# Mise en oeuvre de la méthodologie  par maximisation de l'entropie
 
-$$ Max \; -\sum_{i,j} P( a_i \text{ et } t_j  \text{ et }  r) \ln(P( a_i \text{ et } t_j  \text{ et }  r)) $$
-sous les contraintes
+Dans cette approche, une optimisation globale tenant compte de tous les revenus est mise en oeuvre. Les avantages sont :  
+* pas d'hypothèse rajoutée sur la distribution des revenus au sein des intervalles,  
+* les probabilités obtenues sont cohérentes pour toutes les échelles de revenu.  
 
-$$ \sum_{r} P( a_i \text{ et } t_j  \text{ et }  r) = P( a_i \text{ et } t_j) $$
-Le nombre de contraintes de ce type est égal aux nombres de modalités croitsés.
+Le problème est la complexité du problème d'optimisation. Dans le cas étudié, l'algorithme minexent ne fonctionne pas, nous utilions un algorithme de type SQP. Le problème se pose sous la forme d'une maximisation de l'entropie.  
+
+$$ Max \; -\sum_{i,j,k} P( a_i \text{ et } t_j  \text{ et }  r \in [R(k-1), R(k)]) \ln(P( a_i \text{ et } t_j  \text{ et }  r \in [R(k-1), R(k)])) $$
+sous les contraintes 
+
+$$ \sum_{k} P( a_i \text{ et } t_j  \text{ et }  r \in [R(k-1), R(k)]) = P( a_i \text{ et } t_j) $$
+Le nombre de contraintes de ce type est égal aux nombres de modalités croisées.  
 
 Ensuite, nous tenons compte des marginaux sur les revenus :
 
@@ -505,6 +514,8 @@ $$ \sum_{j} P(a_i \text{ et } t_j \text{ et } r \in [r1,r2]) = P(r \in [r1,r2] |
 [r1,r2] correpond à tous les intervalles fournies par les déciles sur les marginaux, si il y a 10 déciles, 
 
 $P(r \in [r1,r2] | a_i)=0.1$
+
+[r1,r2] est la concaténation d'intervalles consécutif = U [R(k-1), R(k)] tel qye R(k-1)>= r1 et R(k)<=r2
 
 Le nombre de contraintes correspond au nombre de déciles pour toutes les modalités.
 
@@ -602,7 +613,7 @@ Des tests unitaires ont été effectués en prenant ndec=2.
 La matrice des Moments correspondant aux contraintes sur les revenues Mom_rev et Eta_rev ont été vérifiés.
 Mom_mod et Eta_mod correspondant aux contraintes sur les probabilités jointes mériteraient une vérification approfondies mais elles sont plus simples à mettre à en oeuvre.
 
-## Estimation des probabiltés par maximisation de l'entropie
+## Estimation des probabilités par maximisation de l'entropie
 
  Trois algorithmes différents pour trouver une solution sont mis en oeuvre
 
@@ -618,7 +629,6 @@ Mom_mod et Eta_mod correspondant aux contraintes sur les probabilités jointes m
 A=qr(t(Mom))
 I=A$pivot[1:A$rank]
 
-
 # voir article2004Entropy-PolmehtPaperArchive.pdf 
 # Entropy optimization  : computer implementation of  the maxent and mixent principles
 # Rogerio Silva de Mattos
@@ -631,13 +641,14 @@ I=A$pivot[1:A$rank]
 # j'ai modifié l'algorithme pour traiter ce point mais dans ce cas, la solution s'éloigne des marginaux et présente donc peut d'intére
 
 ############# Partie du code permettant de lancer l'optimisation pov_minxent
-pov_minxent.multiple<-function (q, G, eta,lambda) {
+pov_minxent.multiple<-function (q,p_adm, G, eta,lambda) {
 fk<-function (lambda, q, G, eta) 
 {
      lambda0<-log(sum(q*exp(-lambda%*%G[-1,])))
      (q * exp(-lambda0)*exp(-lambda %*% G[-1,]))%*% t(G) - eta # POV : voir article maxent
 } # fin fonction interne fk
-condmax=1e6; # POV pourquoi pas erreur À 200 et à 50 quand la population augmente, algorithme pas étudié pour les grandes degrés de liberté, plus le conditionnement est important, mieux on colle aux marginaux
+condmax=1e8; # POV pourquoi pas erreur À 200 et à 50 quand la population augmente, algorithme pas étudié pour les grandes degrés de liberté, plus le conditionnement est important, mieux on colle aux marginaux
+#eta=matrix(eta, nrow=length(eta),ncol=1)
     lambda0 <- log(sum(q * exp(-lambda * G[-1, ])))
     repeat {
         lambda_old <- lambda
@@ -653,14 +664,15 @@ condmax=1e6; # POV pourquoi pas erreur À 200 et à 50 quand la population augme
         hess.ent <- cov.ent$cov
         W <- hess.ent[-1, -1]
         condW=kappa(W)
-        if (condW<condmax)
+        #if (condW<condmax)
            {Go <- solve(W)} # POV : traitement de la chute de rang du hessien
-        else{
+        #else{
         # code spécifique pour tenir compte d'une chute de rang du hessien : cela ne fonctionne pas
-          SVDW=svd(W)
-          V_sing_non_nulle = SVDW$d[SVDW$d[1]/SVDW$d < condmax]
-          Go=SVDW$v%*%diag(c(1/V_sing_non_nulle, rep(0,length(SVDW$d)-length(V_sing_non_nulle))))%*%t(SVDW$u)
-        } # fin sinon le conditionnement du hessien est acceptable
+          #SVDW=svd(W)
+          #V_sing_non_nulle = SVDW$d[SVDW$d[1]/SVDW$d < condmax]
+          #Go=SVDW$v%*%diag(c(1/V_sing_non_nulle, rep(1/V_sing_non_nulle[length(V_sing_non_nulle)],length(SVDW$d)-length(V_sing_non_nulle))))%*%t(SVDW$u)
+         # break
+        #} # fin sinon le conditionnement du hessien est acceptable
         lambda <- lambda_old + f_old[, -1] %*% Go
         if (max(abs(lambda - lambda_old)) < 1e-08)
             {break} # on sort de la boucle
@@ -669,6 +681,17 @@ condmax=1e6; # POV pourquoi pas erreur À 200 et à 50 quand la population augme
     lambda <- out.lj$estimates
     lambda0 <- log(sum(q * exp(-lambda %*% G[-1, ])))
     pi_solve <- (q * exp(-lambda0) * exp(-lambda %*% G[-1, ]))
+    
+    ################### POV ajout temporaire si la solution trouvée n'est pas compatible
+    #pi_solve=matrix(pi_solve, nrow=length(pi_solve),ncol=1)
+   #if ( ( norm(G%*%pi_solve -eta)/norm(eta) ) > tol_compatibilite ) {
+  #    # la solution trouvée est incompatible, on la projette alors 
+  #     SVDG=svd(G)
+  #     Dp= p_adm - pi_solve + SVDG$v%*%diag(c(rep(1,length(SVDG$d)))/SVDG$d)%*%t(SVDG$u)%*%(G%*%pi_solve -eta)
+  #     pi_solve = p_adm + Dp
+  #     browser()
+  #  }
+    #################### Essai non concluant : on trouve des probas négatives
     list(Langrangians= c(lambda0,lambda) , Estimates=pi_solve)
 } # fin function pov_minxent
 ############# FIN  Partie du code permettant de lancer l'optimisation pov_minxent
@@ -714,7 +737,7 @@ if (abs(result$value)>tol_compatibilite) {
   p_init=rep(as.double(1/n_deg), n_deg)
  p_out=tryCatch(
         expr = {
-           Sortie=pov_minxent.multiple(q=p_init,G=Mom[I,],eta=Eta[I],lambda=c(rep(0, length(I)-1)))  
+           Sortie=pov_minxent.multiple(q=p_init,p_adm=p_adm,G=Mom[I,],eta=Eta[I],lambda=c(rep(0, length(I)-1)))  
             p_out=Sortie$Estimates
         },
         error = function(e){
@@ -764,13 +787,17 @@ Ce data frame fournit pour les 12 modalités croisées la proportion de la modal
 * la moyenne du revenu pour cette modalité calculée à partir des deux méthodologies de reconstruction de la loi du revenu, mPredit  
 * idem pour l'écart type, stdPredit pour les deux parties  
 
-**Les grandes variations des moyennes de revenu sont prédites, les petites variations sont mal prédites : la précision est probablement suffisante pour notre usage**
+**Les grandes variations des moyennes de revenu sont prédites : par exemple lorsque les revenus sont doublés quand on passe d'un ménage à une pesonne à un ménage comprenant deux personnes, les petites variations sont, quelque fois, mal prédites, par exemple lorsqu'on passe d'une classe d'age à une autre. La précision est probablement suffisante pour l'usage que nous en avons et si nous comparons cette approche à une approche où le revenu n'est pas pris en compte**
 
 **les écarts types sont largement surévalués ce qui peut entrainer des revenus qui n'existent pas. Cependant, ceci provient des hypothèses initiales : loi normale tronquée approximée par des déciles avec une hypothèse forte sur une répartition uniforme des revenus sur les intervalles fournies. Dans la réalité, ce n'est pas évident que les revenus se distribuent selon une loi normale tronquée.**
 
 **Les résultats des deux méthodologies sont équivalentes, un peu meilleur pour l'heuristique, à discuter...**
 
 **Attention les résultats varient en fonction du nombre d'individus, du noyau aléatoire, etc. Bref, l'analyse doit se limiter sur les grandes tendances et pas sur les détails**
+
+**Nous pourrions passer du temps à faire un SQP adapté à notre problème ou à rentre cohérent de manière optimale les probabilités obtenus avec la première méthode mais cela nous emmenerait trop loin : ce sont des pistes à explorer plus tard**
+
+
 
 
 
